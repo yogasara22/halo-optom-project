@@ -1,0 +1,898 @@
+{
+	"info": {
+		"_postman_id": "halo-optom-api-collection",
+		"name": "Halo Optom API Collection",
+		"description": "Complete API collection for Halo Optom Backend with Xendit Payment Gateway",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"patient\",\n  \"phone\": \"+6281234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('auth_token', response.token);",
+									"    pm.environment.set('user_id', response.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Users Management",
+			"item": [
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": ["{{base_url}}"],
+							"path": ["users"]
+						}
+					}
+				},
+				{
+					"name": "Get User by ID (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe Updated\",\n  \"phone\": \"+6281234567891\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/profile/update",
+							"host": ["{{base_url}}"],
+							"path": ["users", "profile", "update"]
+						}
+					}
+				},
+				{
+					"name": "Setup Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Admin\",\n  \"email\": \"admin@halooptom.com\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/setup-admin",
+							"host": ["{{base_url}}"],
+							"path": ["users", "setup-admin"]
+						}
+					}
+				},
+				{
+					"name": "Create User (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"patient\",\n  \"phone\": \"+6281234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": ["{{base_url}}"],
+							"path": ["users"]
+						}
+					}
+				},
+				{
+					"name": "Update User (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated User Name\",\n  \"phone\": \"+6281234567891\",\n  \"is_verified\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete User (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Verify Optometrist (Admin)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}/verify",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}", "verify"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Appointments",
+			"item": [
+				{
+					"name": "Create Appointment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"optometrist_id\": \"optometrist-uuid\",\n  \"appointment_date\": \"2024-02-15\",\n  \"appointment_time\": \"10:00\",\n  \"notes\": \"Pemeriksaan mata rutin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments",
+							"host": ["{{base_url}}"],
+							"path": ["appointments"]
+						}
+					}
+				},
+				{
+					"name": "Get Appointments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/appointments",
+							"host": ["{{base_url}}"],
+							"path": ["appointments"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Schedules",
+			"item": [
+				{
+					"name": "Create Schedule",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"optometrist_id\": \"optometrist-uuid\",\n  \"day_of_week\": \"monday\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"17:00\",\n  \"is_available\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/schedules",
+							"host": ["{{base_url}}"],
+							"path": ["schedules"]
+						}
+					}
+				},
+				{
+					"name": "Bulk Create Schedules",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"optometrist_id\": \"optometrist-uuid\",\n  \"schedules\": [\n    {\n      \"day_of_week\": \"monday\",\n      \"start_time\": \"09:00\",\n      \"end_time\": \"17:00\"\n    },\n    {\n      \"day_of_week\": \"tuesday\",\n      \"start_time\": \"09:00\",\n      \"end_time\": \"17:00\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/schedules/bulk",
+							"host": ["{{base_url}}"],
+							"path": ["schedules", "bulk"]
+						}
+					}
+				},
+				{
+					"name": "Get Schedules",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/schedules?optometrist_id={{optometrist_id}}&day_of_week=monday",
+							"host": ["{{base_url}}"],
+							"path": ["schedules"],
+							"query": [
+								{
+									"key": "optometrist_id",
+									"value": "{{optometrist_id}}"
+								},
+								{
+									"key": "day_of_week",
+									"value": "monday"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Schedule",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"day_of_week\": \"monday\",\n  \"start_time\": \"08:00\",\n  \"end_time\": \"16:00\",\n  \"is_available\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/schedules/{{schedule_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["schedules", "{{schedule_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Schedule",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/schedules/{{schedule_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["schedules", "{{schedule_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Kacamata Anti Radiasi\",\n  \"description\": \"Kacamata dengan lensa anti radiasi blue light\",\n  \"price\": 250000,\n  \"stock\": 50,\n  \"category\": \"kacamata\",\n  \"image_url\": \"https://example.com/image.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/products",
+							"host": ["{{base_url}}"],
+							"path": ["products"]
+						}
+					}
+				},
+				{
+					"name": "Get Products",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/products",
+							"host": ["{{base_url}}"],
+							"path": ["products"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Create Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"product_id\": \"product-uuid\",\n      \"quantity\": 2\n    }\n  ],\n  \"shipping_address\": \"Jl. Contoh No. 123, Jakarta\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/orders",
+							"host": ["{{base_url}}"],
+							"path": ["orders"]
+						}
+					}
+				},
+				{
+					"name": "Get Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/orders",
+							"host": ["{{base_url}}"],
+							"path": ["orders"]
+						}
+					}
+				},
+				{
+					"name": "Update Order Status (Admin)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"shipped\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/orders/{{order_id}}/status",
+							"host": ["{{base_url}}"],
+							"path": ["orders", "{{order_id}}", "status"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Medical Records",
+			"item": [
+				{
+					"name": "Create Medical Record",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patient_id\": \"patient-uuid\",\n  \"appointment_id\": \"appointment-uuid\",\n  \"diagnosis\": \"Miopia ringan\",\n  \"prescription\": \"Kacamata -1.5 D\",\n  \"notes\": \"Pasien disarankan kontrol 6 bulan\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/medical-records",
+							"host": ["{{base_url}}"],
+							"path": ["medical-records"]
+						}
+					}
+				},
+				{
+					"name": "Get Medical Records by Patient",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/medical-records/patient/{{patient_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["medical-records", "patient", "{{patient_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Medical Record Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/medical-records/{{medical_record_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["medical-records", "{{medical_record_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Reviews",
+			"item": [
+				{
+					"name": "Create Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"optometrist_id\": \"optometrist-uuid\",\n  \"appointment_id\": \"appointment-uuid\",\n  \"rating\": 5,\n  \"comment\": \"Pelayanan sangat baik dan profesional\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/reviews",
+							"host": ["{{base_url}}"],
+							"path": ["reviews"]
+						}
+					}
+				},
+				{
+					"name": "Get Reviews for Optometrist",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/reviews/optometrist/{{optometrist_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["reviews", "optometrist", "{{optometrist_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get My Reviews",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/reviews/me",
+							"host": ["{{base_url}}"],
+							"path": ["reviews", "me"]
+						}
+					}
+				},
+				{
+					"name": "Delete Review",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/reviews/{{review_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["reviews", "{{review_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Chat",
+			"item": [
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Halo dokter, saya ingin konsultasi\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/{{room_id}}/message",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "{{room_id}}", "message"]
+						}
+					}
+				},
+				{
+					"name": "Get Chat Messages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/chat/{{room_id}}/messages",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "{{room_id}}", "messages"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "VideoSDK",
+			"item": [
+				{
+					"name": "Create Room",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customRoomId\": \"consultation-room-123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/videosdk/room",
+							"host": ["{{base_url}}"],
+							"path": ["videosdk", "room"]
+						}
+					}
+				},
+				{
+					"name": "Get Join Token",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/videosdk/token/{{room_id}}/{{participant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["videosdk", "token", "{{room_id}}", "{{participant_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Notifications",
+			"item": [
+				{
+					"name": "Get User Notifications",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notifications",
+							"host": ["{{base_url}}"],
+							"path": ["notifications"]
+						}
+					}
+				},
+				{
+					"name": "Mark Notification as Read",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notifications/{{notification_id}}/read",
+							"host": ["{{base_url}}"],
+							"path": ["notifications", "{{notification_id}}", "read"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Get Dashboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/stats",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "stats"]
+						}
+					}
+				},
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "users"]
+						}
+					}
+				},
+				{
+					"name": "Delete User (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "users", "{{user_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Payment Webhooks (Xendit)",
+			"item": [
+				{
+					"name": "Xendit Appointment Webhook",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-CALLBACK-TOKEN",
+								"value": "{{xendit_webhook_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"invoice-id-123\",\n  \"external_id\": \"appointment-uuid-123-1640995200000\",\n  \"user_id\": \"user-uuid\",\n  \"status\": \"PAID\",\n  \"merchant_name\": \"Halo Optom\",\n  \"amount\": 150000,\n  \"paid_amount\": 150000,\n  \"paid_at\": \"2024-01-15T10:30:00.000Z\",\n  \"payer_email\": \"patient@example.com\",\n  \"description\": \"Pembayaran konsultasi optometri\",\n  \"currency\": \"IDR\",\n  \"payment_method\": \"BANK_TRANSFER\",\n  \"payment_channel\": \"BCA\",\n  \"created\": \"2024-01-15T10:00:00.000Z\",\n  \"updated\": \"2024-01-15T10:30:00.000Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payment-appointment/xendit-webhook",
+							"host": ["{{base_url}}"],
+							"path": ["payment-appointment", "xendit-webhook"]
+						}
+					}
+				},
+				{
+					"name": "Xendit Order Webhook",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-CALLBACK-TOKEN",
+								"value": "{{xendit_webhook_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"invoice-id-456\",\n  \"external_id\": \"order-uuid-456-1640995200000\",\n  \"user_id\": \"user-uuid\",\n  \"status\": \"PAID\",\n  \"merchant_name\": \"Halo Optom\",\n  \"amount\": 500000,\n  \"paid_amount\": 500000,\n  \"paid_at\": \"2024-01-15T11:30:00.000Z\",\n  \"payer_email\": \"customer@example.com\",\n  \"description\": \"Pembayaran pembelian kacamata\",\n  \"currency\": \"IDR\",\n  \"payment_method\": \"EWALLET\",\n  \"payment_channel\": \"OVO\",\n  \"created\": \"2024-01-15T11:00:00.000Z\",\n  \"updated\": \"2024-01-15T11:30:00.000Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payment-order/xendit-webhook",
+							"host": ["{{base_url}}"],
+							"path": ["payment-order", "xendit-webhook"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

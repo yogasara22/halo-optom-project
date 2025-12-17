@@ -1,0 +1,39 @@
+/* Product Description HTML Content Styling */
+.product-description-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-description-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-description-content h1 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.product-description-content h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.product-description-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.product-description-content p {
+  margin-bottom: 0.25rem;
+}
+
+.product-description-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
