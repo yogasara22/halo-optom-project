@@ -23,6 +23,7 @@ import servicePricingRoutes from './routes/servicePricing.routes';
 import paymentOrderRoutes from './routes/payment-order.routes';
 import paymentAppointmentRoutes from './routes/payment-appoinment.routes';
 import paymentRoutes from './routes/payment.routes';
+// import analyticsRoutes from './routes/analytics.routes';
 
 
 // Load environment variables
@@ -63,6 +64,7 @@ app.use('/api/services', servicePricingRoutes);
 app.use('/api/payments-appointment', paymentAppointmentRoutes);
 app.use('/api/payments-order', paymentOrderRoutes);
 app.use('/api/payments', paymentRoutes);
+// app.use('/api/analytics', analyticsRoutes); // Removed to use admin routes instead
 
 // Simple test route
 app.get('/', (_req, res) => {

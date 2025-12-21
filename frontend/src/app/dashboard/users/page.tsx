@@ -122,6 +122,7 @@ const UsersPage = () => {
         bio: userData.bio,
         experience: userData.experience,
         certifications: userData.certifications,
+        str_number: userData.str_number,
         chat_commission_percentage: userData.chat_commission_percentage,
         video_commission_percentage: userData.video_commission_percentage,
       };
@@ -566,6 +567,8 @@ const UsersPage = () => {
                 address: editingUser.address || '',
                 bio: editingUser.bio || '',
                 experience: editingUser.experience || '',
+                certifications: editingUser.certifications || [],
+                str_number: editingUser.str_number || '',
                 chat_commission_percentage: editingUser.chat_commission_percentage || 0,
                 video_commission_percentage: editingUser.video_commission_percentage || 0,
                 avatar_url: editingUser.avatar_url || '',

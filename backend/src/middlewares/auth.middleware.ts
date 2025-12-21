@@ -26,4 +26,17 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
 };
 
 // Alias untuk konsistensi dengan nama yang digunakan di routes
+// Alias untuk konsistensi dengan nama yang digunakan di routes
 export const authenticateToken = authMiddleware;
+
+export const authorize = (roles: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient rights' });
+    }
+    next();
+  };
+};

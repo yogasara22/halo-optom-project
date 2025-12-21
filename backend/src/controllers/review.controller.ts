@@ -118,3 +118,83 @@ export const deleteReview = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// 📌 ADMIN: Get all reviews
+export const getAllReviewsAdmin = async (req: Request, res: Response) => {
+  try {
+    const reviewRepo = AppDataSource.getRepository(Review);
+    const reviews = await reviewRepo.find({
+      order: { created_at: 'DESC' },
+      relations: ['patient', 'optometrist']
+    });
+
+    // Map to frontend expected format if needed
+    const data = reviews.map(r => ({
+      ...r,
+      patientName: r.patient?.name || 'Unknown',
+      patientEmail: r.patient?.email || 'Unknown',
+      optometristName: r.optometrist?.name || 'Unknown',
+    }));
+
+    return res.json({ data });
+  } catch (err) {
+    console.error('getAllReviewsAdmin error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// 📌 ADMIN: Get review stats
+export const getReviewStatsAdmin = async (req: Request, res: Response) => {
+  try {
+    const reviewRepo = AppDataSource.getRepository(Review);
+    const reviews = await reviewRepo.find();
+
+    const totalReviews = reviews.length;
+    const pendingReviews = reviews.filter(r => r.status === 'pending').length;
+    const approvedReviews = reviews.filter(r => r.status === 'approved').length;
+    const rejectedReviews = reviews.filter(r => r.status === 'rejected').length;
+    const reportedReviews = reviews.filter(r => r.report_count > 0).length;
+
+    const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+    const averageRating = totalReviews > 0 ? totalRating / totalReviews : 0;
+
+    return res.json({
+      totalReviews,
+      pendingReviews,
+      approvedReviews,
+      rejectedReviews,
+      reportedReviews,
+      averageRating
+    });
+  } catch (err) {
+    console.error('getReviewStatsAdmin error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// 📌 ADMIN: Update review status
+export const updateReviewStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const reviewRepo = AppDataSource.getRepository(Review);
+    const review = await reviewRepo.findOne({ where: { id } });
+
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    review.status = status;
+    await reviewRepo.save(review);
+
+    return res.json({ message: 'Status updated', data: review });
+  } catch (err) {
+    console.error('updateReviewStatus error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};

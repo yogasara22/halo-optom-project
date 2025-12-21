@@ -29,56 +29,20 @@ export const deleteReview = async (reviewId: string): Promise<{ message: string 
   return response.data;
 };
 
-// Mendapatkan semua review untuk admin (akan dibuat endpoint baru di backend)
+// Mendapatkan semua review untuk admin
 export const getAllReviews = async (): Promise<Review[]> => {
-  try {
-    // Sementara menggunakan mock data karena endpoint belum tersedia
-    const mockReviews: Review[] = [
-      // Mock data akan diganti dengan API call setelah endpoint tersedia
-    ];
-    return mockReviews;
-  } catch (error) {
-    console.error('Error fetching all reviews:', error);
-    throw error;
-  }
+  const response = await api.get<{ data: Review[] }>('/reviews/admin/all');
+  return response.data.data;
 };
 
-// Mendapatkan statistik review untuk admin (akan dibuat endpoint baru di backend)
+// Mendapatkan statistik review untuk admin
 export const getReviewStats = async (): Promise<ReviewStats> => {
-  try {
-    // TODO: Ganti dengan API call ke endpoint yang sebenarnya
-    // Endpoint ini akan mengambil data review dari mobile app Halo Optom
-    // const response = await api.get<ReviewStats>('/admin/reviews/stats');
-    // return response.data;
-    
-    // Sementara menggunakan nilai default (0) untuk semua statistik
-    // Data ini akan otomatis diperbarui ketika endpoint API tersedia
-    const mockStats: ReviewStats = {
-      totalReviews: 0,
-      pendingReviews: 0,
-      approvedReviews: 0,
-      rejectedReviews: 0,
-      averageRating: 0,
-      reportedReviews: 0
-    };
-    return mockStats;
-  } catch (error) {
-    console.error('Error fetching review stats:', error);
-    throw error;
-  }
+  const response = await api.get<ReviewStats>('/reviews/admin/stats');
+  return response.data;
 };
 
-// Update status review (akan dibuat endpoint baru di backend)
+// Update status review
 export const updateReviewStatus = async (reviewId: string, status: 'approved' | 'rejected'): Promise<Review> => {
-  try {
-    // Sementara menggunakan mock response karena endpoint belum tersedia
-    // Akan diganti dengan API call setelah endpoint tersedia
-    return {
-      id: reviewId,
-      status
-    } as Review;
-  } catch (error) {
-    console.error('Error updating review status:', error);
-    throw error;
-  }
+  const response = await api.patch<{ data: Review }>(`/reviews/${reviewId}/status`, { status });
+  return response.data.data;
 };

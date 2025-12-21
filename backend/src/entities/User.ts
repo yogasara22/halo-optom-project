@@ -49,8 +49,8 @@ export class User {
   @Column({ nullable: true })
   experience?: string;
 
-  @Column({ type: 'text', nullable: true })
-  certifications?: string; // Could store JSON string or comma-separated
+  @Column({ type: 'simple-array', nullable: true })
+  certifications?: string[]; // Store as comma-separated string automatically
 
   @Column({ nullable: true })
   str_number?: string; // Nomor STR (Surat Tanda Registrasi) for Optometrist

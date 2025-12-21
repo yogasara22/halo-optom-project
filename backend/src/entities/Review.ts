@@ -27,6 +27,19 @@ export class Review {
   @Column({ type: 'text', nullable: true })
   comment?: string;
 
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  })
+  status!: 'pending' | 'approved' | 'rejected';
+
+  @Column({ type: 'int', default: 0 })
+  report_count!: number;
+
+  @Column({ type: 'text', nullable: true })
+  service_type?: string;
+
   @CreateDateColumn()
   created_at!: Date;
 }

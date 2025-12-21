@@ -99,7 +99,10 @@ export const createUser = async (req: Request, res: Response) => {
       avatar_url,
       bio,
       experience,
-      certifications
+      certifications,
+      str_number,
+      chat_commission_percentage,
+      video_commission_percentage
     } = req.body;
 
     if (!name || !email || !password || !role) {
@@ -132,6 +135,9 @@ export const createUser = async (req: Request, res: Response) => {
       bio,
       experience,
       certifications,
+      str_number,
+      chat_commission_percentage: chat_commission_percentage || 0,
+      video_commission_percentage: video_commission_percentage || 0,
       is_verified: true, // Semua pengguna baru default aktif
     });
 
@@ -184,6 +190,7 @@ export const updateUser = async (req: Request, res: Response) => {
       bio,
       experience,
       certifications,
+      str_number,
     } = req.body;
 
     const userRepo = AppDataSource.getRepository(User);
@@ -202,6 +209,7 @@ export const updateUser = async (req: Request, res: Response) => {
     user.bio = bio ?? user.bio;
     user.experience = experience ?? user.experience;
     user.certifications = certifications ?? user.certifications;
+    user.str_number = str_number ?? user.str_number;
     user.chat_commission_percentage = req.body.chat_commission_percentage ?? user.chat_commission_percentage;
     user.video_commission_percentage = req.body.video_commission_percentage ?? user.video_commission_percentage;
 

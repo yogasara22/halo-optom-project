@@ -62,6 +62,9 @@ export interface CreateUserRequest {
   bio?: string;
   experience?: string;
   certifications?: string[];
+  str_number?: string;
+  chat_commission_percentage?: number;
+  video_commission_percentage?: number;
 }
 
 export interface UpdateUserRequest {
@@ -78,6 +81,7 @@ export interface UpdateUserRequest {
   bio?: string;
   experience?: string;
   certifications?: string[];
+  str_number?: string;
   chat_commission_percentage?: number;
   video_commission_percentage?: number;
 }
@@ -180,6 +184,9 @@ class UserService {
       bio: userData.bio,
       experience: userData.experience,
       certifications: userData.certifications,
+      str_number: userData.str_number,
+      chat_commission_percentage: userData.chat_commission_percentage,
+      video_commission_percentage: userData.video_commission_percentage,
     };
 
     const response = await fetch(`${API_BASE_URL}/users`, {

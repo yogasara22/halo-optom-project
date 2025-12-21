@@ -44,7 +44,7 @@ export default function ReviewsPage() {
     try {
       setLoading(true);
       const data = await getAllReviews();
-      
+
       // Format data to match UI requirements
       const formattedReviews = data.map(review => ({
         ...review,
@@ -58,81 +58,12 @@ export default function ReviewsPage() {
         reportCount: review.reportCount || 0,
         isReported: review.isReported || false
       }));
-      
+
       setReviews(formattedReviews);
     } catch (error) {
       console.error('Error fetching reviews:', error);
       toast.error('Gagal memuat data review');
-      
-      // Fallback to mock data if API fails
-      const mockReviews: Review[] = [
-        {
-          id: '1',
-          patientName: 'John Doe',
-          patientEmail: 'john@example.com',
-          optometristName: 'Dr. Sarah Wilson',
-          serviceType: 'consultation',
-          rating: 5,
-          comment: 'Excellent service! Dr. Wilson was very professional and thorough.',
-          status: 'pending',
-          createdAt: '2024-01-15T10:30:00Z',
-          reportCount: 0,
-          isReported: false
-        },
-        {
-          id: '2',
-          patientName: 'Jane Smith',
-          patientEmail: 'jane@example.com',
-          optometristName: 'Dr. Michael Brown',
-          serviceType: 'homecare',
-          rating: 4,
-          comment: 'Good service, but arrived a bit late.',
-          status: 'approved',
-          createdAt: '2024-01-14T14:20:00Z',
-          reportCount: 0,
-          isReported: false
-        },
-        {
-          id: '3',
-          patientName: 'Bob Johnson',
-          patientEmail: 'bob@example.com',
-          optometristName: 'Dr. Emily Davis',
-          serviceType: 'product',
-          rating: 1,
-          comment: 'Terrible experience. Very unprofessional behavior.',
-          status: 'pending',
-          createdAt: '2024-01-13T09:15:00Z',
-          reportCount: 3,
-          isReported: true
-        },
-        {
-          id: '4',
-          patientName: 'Alice Brown',
-          patientEmail: 'alice@example.com',
-          optometristName: 'Dr. Sarah Wilson',
-          serviceType: 'consultation',
-          rating: 5,
-          comment: 'Amazing consultation! Highly recommend.',
-          status: 'approved',
-          createdAt: '2024-01-12T16:45:00Z',
-          reportCount: 0,
-          isReported: false
-        },
-        {
-          id: '5',
-          patientName: 'Charlie Wilson',
-          patientEmail: 'charlie@example.com',
-          optometristName: 'Dr. Michael Brown',
-          serviceType: 'homecare',
-          rating: 2,
-          comment: 'Service was okay but could be better.',
-          status: 'rejected',
-          createdAt: '2024-01-11T11:30:00Z',
-          reportCount: 1,
-          isReported: true
-        }
-      ];
-      setReviews(mockReviews);
+      setReviews([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -146,20 +77,17 @@ export default function ReviewsPage() {
     } catch (error) {
       console.error('Error fetching stats:', error);
       toast.error('Gagal memuat statistik review');
-      
-      // Fallback to mock data if API fails
-      const mockStats: ReviewStats = {
-        totalReviews: 156,
-        pendingReviews: 23,
-        approvedReviews: 118,
-        rejectedReviews: 15,
-        averageRating: 4.2,
-        reportedReviews: 8
-      };
-      setStats(mockStats);
+      setStats({
+        totalReviews: 0,
+        pendingReviews: 0,
+        approvedReviews: 0,
+        rejectedReviews: 0,
+        averageRating: 0,
+        reportedReviews: 0
+      });
     }
   };
-  
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await Promise.all([fetchReviews(), fetchStats()]);
@@ -169,15 +97,15 @@ export default function ReviewsPage() {
     try {
       // Show loading toast
       const loadingToast = toast.loading(`${newStatus === 'approved' ? 'Menyetujui' : 'Menolak'} review...`);
-      
+
       // Call API to update status
       const updatedReview = await updateReviewStatus(reviewId, newStatus);
-      
+
       // Update local state
-      setReviews(prev => prev.map(review => 
+      setReviews(prev => prev.map(review =>
         review.id === reviewId ? { ...review, status: newStatus } : review
       ));
-      
+
       // Update stats
       setStats(prev => ({
         ...prev,
@@ -185,7 +113,7 @@ export default function ReviewsPage() {
         approvedReviews: newStatus === 'approved' ? prev.approvedReviews + 1 : prev.approvedReviews,
         rejectedReviews: newStatus === 'rejected' ? prev.rejectedReviews + 1 : prev.rejectedReviews
       }));
-      
+
       // Show success toast
       toast.dismiss(loadingToast);
       toast.success(`Review berhasil ${newStatus === 'approved' ? 'disetujui' : 'ditolak'}`);
@@ -202,19 +130,19 @@ export default function ReviewsPage() {
 
   const filteredReviews = reviews.filter(review => {
     const matchesSearch = (review.patientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                         (review.optometristName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                         (review.comment?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      (review.optometristName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (review.comment?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || review.status === statusFilter;
     const matchesService = serviceFilter === 'all' || review.serviceType === serviceFilter;
-    const matchesRating = ratingFilter === 'all' || 
-                         (ratingFilter === '5' && review.rating === 5) ||
-                         (ratingFilter === '4' && review.rating === 4) ||
-                         (ratingFilter === '3' && review.rating === 3) ||
-                         (ratingFilter === '1-2' && review.rating <= 2);
-    
+    const matchesRating = ratingFilter === 'all' ||
+      (ratingFilter === '5' && review.rating === 5) ||
+      (ratingFilter === '4' && review.rating === 4) ||
+      (ratingFilter === '3' && review.rating === 3) ||
+      (ratingFilter === '1-2' && review.rating <= 2);
+
     return matchesSearch && matchesStatus && matchesService && matchesRating;
   });
-  
+
   // Add animation class when filtering changes
   useEffect(() => {
     if (!loading) {
@@ -268,9 +196,9 @@ export default function ReviewsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Review & Feedback</h1>
             <p className="text-gray-600">Kelola dan moderasi review dari pasien</p>
           </div>
-          <Button 
-            onClick={handleRefresh} 
-            variant="outline" 
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
             className="flex items-center gap-2 self-start"
             disabled={refreshing}
           >
@@ -280,126 +208,126 @@ export default function ReviewsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {/* Total Reviews */}
-          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 group">
+          <Card className="overflow-hidden border border-blue-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-700">Total Review</p>
+                  <p className="text-sm font-medium text-gray-500">Total Review</p>
                   {loading ? (
                     <Skeleton className="h-8 w-16 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold text-blue-900">{stats.totalReviews}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalReviews}</p>
                   )}
                 </div>
-                <div className="w-12 h-12 rounded-full bg-blue-100/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <MessageSquare className="w-6 h-6 text-blue-500" />
+                <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors duration-200">
+                  <MessageSquare className="w-5 h-5 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Pending Reviews */}
-          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-amber-50 to-amber-100 group">
+          <Card className="overflow-hidden border border-amber-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-amber-700">Pending</p>
+                  <p className="text-sm font-medium text-gray-500">Pending</p>
                   {loading ? (
                     <Skeleton className="h-8 w-16 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold text-amber-900">{stats.pendingReviews}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.pendingReviews}</p>
                   )}
                 </div>
-                <div className="w-12 h-12 rounded-full bg-amber-100/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <AlertTriangle className="w-6 h-6 text-amber-500" />
+                <div className="p-2 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors duration-200">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Approved Reviews */}
-          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-green-50 to-green-100 group">
+          <Card className="overflow-hidden border border-green-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-700">Approved</p>
+                  <p className="text-sm font-medium text-gray-500">Approved</p>
                   {loading ? (
                     <Skeleton className="h-8 w-16 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold text-green-900">{stats.approvedReviews}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.approvedReviews}</p>
                   )}
                 </div>
-                <div className="w-12 h-12 rounded-full bg-green-100/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <CheckCircle className="w-6 h-6 text-green-500" />
+                <div className="p-2 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors duration-200">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Rejected Reviews */}
-          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-rose-50 to-rose-100 group">
+          <Card className="overflow-hidden border border-rose-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-rose-700">Rejected</p>
+                  <p className="text-sm font-medium text-gray-500">Rejected</p>
                   {loading ? (
                     <Skeleton className="h-8 w-16 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold text-rose-900">{stats.rejectedReviews}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.rejectedReviews}</p>
                   )}
                 </div>
-                <div className="w-12 h-12 rounded-full bg-rose-100/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <XCircle className="w-6 h-6 text-rose-500" />
+                <div className="p-2 rounded-lg bg-rose-50 group-hover:bg-rose-100 transition-colors duration-200">
+                  <XCircle className="w-5 h-5 text-rose-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Average Rating */}
-          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-amber-50 to-amber-100 group">
+          <Card className="overflow-hidden border border-amber-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group col-span-1 md:col-span-2 lg:col-span-1">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-amber-700">Rating Rata-rata</p>
+              <div className="flex items-start justify-between">
+                <div className="w-full">
+                  <p className="text-sm font-medium text-gray-500">Rata-rata</p>
                   {loading ? (
                     <Skeleton className="h-8 w-16 mt-1" />
                   ) : (
-                    <div className="flex items-center gap-1">
-                      <p className="text-2xl font-bold text-amber-900">{stats.averageRating.toFixed(1)}</p>
-                      <div className="flex mt-1">
+                    <div className="flex flex-col mt-1">
+                      <span className="text-2xl font-bold text-gray-900">{stats.averageRating.toFixed(1)}</span>
+                      <div className="flex items-center mt-1 space-x-0.5">
                         {Array.from({ length: 5 }, (_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`w-4 h-4 ${i < Math.floor(stats.averageRating) ? 'text-amber-500 fill-current' : 'text-amber-300'}`} 
+                          <Star
+                            key={i}
+                            className={`w-3 h-3 ${i < Math.floor(stats.averageRating) ? 'text-amber-500 fill-current' : 'text-gray-200'}`}
                           />
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
-                <div className="w-12 h-12 rounded-full bg-amber-100/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <Star className="w-6 h-6 text-amber-500" />
+                <div className="p-2 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors duration-200 shrink-0 ml-2">
+                  <Star className="w-5 h-5 text-amber-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Reported Reviews */}
-          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-purple-50 to-purple-100 group">
+          <Card className="overflow-hidden border border-purple-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-700">Dilaporkan</p>
+                  <p className="text-sm font-medium text-gray-500">Reported</p>
                   {loading ? (
                     <Skeleton className="h-8 w-16 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold text-purple-900">{stats.reportedReviews}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.reportedReviews}</p>
                   )}
                 </div>
-                <div className="w-12 h-12 rounded-full bg-purple-100/80 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <AlertTriangle className="w-6 h-6 text-purple-500" />
+                <div className="p-2 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors duration-200">
+                  <AlertTriangle className="w-5 h-5 text-purple-600" />
                 </div>
               </div>
             </CardContent>
@@ -433,7 +361,7 @@ export default function ReviewsPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <div className="relative">
@@ -701,7 +629,7 @@ export default function ReviewsPage() {
                     disabled={currentPage === 1 || refreshing}
                     className="border-gray-200 hover-border-blue-300 hover:bg-blue-50 transition-colors duration-200 gap-1"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m15 18-6-6 6-6"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m15 18-6-6 6-6" /></svg>
                     Previous
                   </Button>
                   <span className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-md bg-white shadow-sm">
@@ -714,7 +642,7 @@ export default function ReviewsPage() {
                     className="border-gray-200 hover-border-blue-300 hover:bg-blue-50 transition-colors duration-200 gap-1"
                   >
                     Next
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m9 18 6-6-6-6"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m9 18 6-6-6-6" /></svg>
                   </Button>
                 </div>
               </div>
@@ -736,7 +664,7 @@ export default function ReviewsPage() {
                   ×
                 </Button>
               </div>
-              
+
               <div className="p-6 space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                   <div className="flex items-center space-x-3">
@@ -757,7 +685,7 @@ export default function ReviewsPage() {
                     {selectedReview.status === 'rejected' && 'Rejected'}
                   </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="bg-gray-50 p-4 rounded-lg">
@@ -817,7 +745,7 @@ export default function ReviewsPage() {
                     )}
                   </div>
                 </div>
-                
+
                 {selectedReview.status === 'pending' && (
                   <div className="flex space-x-3 pt-4 border-t border-gray-100">
                     <Button

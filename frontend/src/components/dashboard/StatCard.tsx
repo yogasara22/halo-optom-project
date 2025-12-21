@@ -53,7 +53,7 @@ const StatCard: React.FC<StatCardProps> = ({
       <CardContent className="flex items-center p-6 relative">
         <div className="flex items-center w-full">
           <div className={clsx(
-            'flex items-center justify-center w-14 h-14 rounded-xl',
+            'flex items-center justify-center w-14 h-14 rounded-xl shrink-0',
             'shadow-md group-hover:shadow-lg transition-all duration-300',
             'group-hover:scale-105 backdrop-blur-sm',
             colorClasses[color].bg
@@ -70,8 +70,8 @@ const StatCard: React.FC<StatCardProps> = ({
               <div className="flex items-center mt-2">
                 <div className={clsx(
                   'flex items-center px-2 py-1 rounded-full text-xs font-semibold',
-                  trend.isPositive 
-                    ? 'bg-emerald-100 text-emerald-700' 
+                  trend.isPositive
+                    ? 'bg-emerald-100 text-emerald-700'
                     : 'bg-rose-100 text-rose-700'
                 )}>
                   <span className={clsx(

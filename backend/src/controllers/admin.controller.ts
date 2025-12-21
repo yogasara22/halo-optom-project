@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/ormconfig';
-import { User } from '../entities/User';
+import { User, UserRole } from '../entities/User';
 import { Order } from '../entities/Order';
 import { Product } from '../entities/Product';
 import { Schedule } from '../entities/Schedule';
+import { Appointment } from '../entities/Appointment';
 
 export const getAllUsers = async (_: Request, res: Response) => {
   try {
@@ -38,19 +39,40 @@ export const deleteUser = async (req: Request, res: Response) => {
 
 export const getDashboardStats = async (_: Request, res: Response) => {
   try {
-    const [totalUsers, totalOrders, totalProducts, totalSchedules] =
-      await Promise.all([
-        AppDataSource.getRepository(User).count(),
-        AppDataSource.getRepository(Order).count(),
-        AppDataSource.getRepository(Product).count(),
-        AppDataSource.getRepository(Schedule).count(),
-      ]);
+    const userRepo = AppDataSource.getRepository(User);
+    const orderRepo = AppDataSource.getRepository(Order);
+    const appointmentRepo = AppDataSource.getRepository(Appointment);
+
+    const totalUsers = await userRepo.count();
+    const totalOptometrists = await userRepo.count({
+      where: { role: UserRole.Optometris }
+    });
+    const totalPatients = await userRepo.count({
+      where: { role: UserRole.Pasien }
+    });
+    const totalOrders = await orderRepo.count();
+
+    // Additional stats
+    const pendingOrders = await orderRepo.count({ where: { status: 'pending' } });
+
+    // Revenue calculation
+    const { sum } = await orderRepo
+      .createQueryBuilder("o")
+      .select("SUM(o.total)", "sum")
+      .where("o.status = :status", { status: 'paid' })
+      .getRawOne();
+    const totalRevenue = parseFloat(sum || '0');
+
+    const activeAppointments = await appointmentRepo.count({ where: { status: 'confirmed' } });
 
     return res.json({
-      total_users: totalUsers,
-      total_orders: totalOrders,
-      total_products: totalProducts,
-      total_schedules: totalSchedules
+      totalUsers,
+      totalOptometrists,
+      totalPatients,
+      totalOrders,
+      pendingOrders,
+      totalRevenue,
+      activeAppointments
     });
   } catch (err) {
     console.error(err);
