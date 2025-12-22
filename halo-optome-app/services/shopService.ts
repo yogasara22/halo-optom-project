@@ -26,7 +26,7 @@ class ShopService {
     async getProductById(id: string): Promise<Product | null> {
         try {
             const response = await api.get(`/products/${id}`);
-            return response.data.data;
+            return response.data;
         } catch (error) {
             console.error('Get product by id error:', error);
             return null;

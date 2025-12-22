@@ -189,7 +189,7 @@ export default function DashboardScreen() {
         <Text style={styles.sectionTitle}>Rekomendasi Kacamata</Text>
         <ProductCarousel
           data={products}
-          onProductPress={(item: ProductItem) => router.push(`/patient/item/${item.id}`)}
+          onProductPress={(item: ProductItem) => router.push(`/patient/product/${item.id}`)}
         />
       </ScrollView>
 

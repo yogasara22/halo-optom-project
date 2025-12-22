@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { shopService, Product } from '../../../services/shopService';
 import { useCart } from '../../../context/CartContext';
 import { formatRupiah } from '../../../utils/format';
@@ -10,10 +10,17 @@ import { API_BASE_URL } from '../../../constants/config';
 
 const { width } = Dimensions.get('window');
 
+// Helper function to strip HTML tags from text
+const stripHtmlTags = (html: string | undefined): string => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>/g, '').trim();
+};
+
 export default function ProductDetailScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const { addToCart } = useCart();
+    const insets = useSafeAreaInsets();
 
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
@@ -142,13 +149,13 @@ export default function ProductDetailScreen() {
 
                     <Text style={styles.sectionTitle}>Deskripsi</Text>
                     <Text style={styles.description}>
-                        {product.description || 'Tidak ada deskripsi tersedia untuk produk ini.'}
+                        {stripHtmlTags(product.description) || 'Tidak ada deskripsi tersedia untuk produk ini.'}
                     </Text>
                 </View>
             </ScrollView>
 
             {/* Bottom Action Bar */}
-            <View style={styles.bottomBar}>
+            <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
                 <View style={styles.qtyContainer}>
                     <TouchableOpacity
                         style={styles.qtyBtn}

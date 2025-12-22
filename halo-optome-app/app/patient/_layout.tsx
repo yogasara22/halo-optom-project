@@ -38,35 +38,35 @@ export default function PatientLayout() {
                 name="index"
                 options={{
                     title: 'Beranda',
-                    // tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
                 }}
             />
             <Tabs.Screen
                 name="schedule"
                 options={{
                     title: 'Jadwal',
-                    // tabBarIcon: ({ color, size }) => <Clock color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Clock color={color} size={size} />,
                 }}
             />
             <Tabs.Screen
                 name="booking"
                 options={{
                     title: 'Booking',
-                    // tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
                 }}
             />
             <Tabs.Screen
                 name="shop"
                 options={{
                     title: 'Toko',
-                    // tabBarIcon: ({ color, size }) => <ShoppingBag color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <ShoppingBag color={color} size={size} />,
                 }}
             />
             <Tabs.Screen
                 name="profile"
                 options={{
                     title: 'Profil',
-                    // tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
                 }}
             />
             <Tabs.Screen
@@ -81,12 +81,21 @@ export default function PatientLayout() {
                 name="optometrist/[id]"
                 options={{
                     href: null,
+                    tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
                 }}
             />
             <Tabs.Screen
                 name="item/[id]"
                 options={{
                     href: null,
+                    tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
+                }}
+            />
+            <Tabs.Screen
+                name="product/[id]"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
                 }}
             />
         </Tabs>

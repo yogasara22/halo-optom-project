@@ -67,7 +67,7 @@ export default function ShopScreen() {
         const imageSource = imageUrl ? { uri: imageUrl } : require('../../assets/images/logo.png');
 
         return (
-            <TouchableOpacity style={styles.productCard} activeOpacity={0.9} onPress={() => router.push(`/patient/item/${item.id}`)}>
+            <TouchableOpacity style={styles.productCard} activeOpacity={0.9} onPress={() => router.push(`/patient/product/${item.id}`)}>
                 <View style={styles.productImageContainer}>
                     <Image source={imageSource} style={styles.productImage} resizeMode="cover" />
                     <TouchableOpacity style={styles.addBtn} onPress={() => addToCart({ id: item.id, name: item.name, price: item.price, imageUrl: imageUrl || '' })}>
