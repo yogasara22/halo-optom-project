@@ -4,7 +4,7 @@
 // export const API_BASE_URL = 'http://localhost:4000/api';
 
 // Gunakan IP lokal untuk pengujian di perangkat fisik
-export const API_BASE_URL = 'http://192.168.11.193:4000/api';
+export const API_BASE_URL = 'http://10.84.155.39:4000/api';
 
 // App Configuration
 export const APP_NAME = 'Halo Optom';

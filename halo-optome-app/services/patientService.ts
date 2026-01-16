@@ -80,7 +80,7 @@ class PatientService {
       const response = await api.get('/patients/appointments', {
         params: status ? { status } : undefined
       });
-      return response.data.data;
+      return response.data;
     } catch (error) {
       console.error('Get appointments error:', error);
       throw error;

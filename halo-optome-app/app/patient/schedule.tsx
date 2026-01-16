@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import patientService, { Appointment } from '../../services/patientService';
+import { fixImageUrl } from '../../lib/utils';
 
 export default function ScheduleScreen() {
     const router = useRouter();
@@ -143,7 +144,7 @@ export default function ScheduleScreen() {
                 <View style={styles.cardHeader}>
                     {item.optometrist.avatar_url ? (
                         <Image
-                            source={{ uri: item.optometrist.avatar_url }}
+                            source={{ uri: fixImageUrl(item.optometrist.avatar_url) }}
                             style={styles.avatar}
                         />
                     ) : (
