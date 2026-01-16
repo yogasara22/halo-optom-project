@@ -28,7 +28,7 @@ export default function LoginScreen() {
       alert('Email dan password harus diisi');
       return;
     }
-    
+
     try {
       const success = await login(email, password);
       if (success) {
@@ -36,7 +36,7 @@ export default function LoginScreen() {
         // Mendukung format role dari backend: 'OPTOMETRIST' atau 'optometris'
         const role = user?.role;
         if (role === 'OPTOMETRIST' || role === 'optometris') {
-          router.replace('/dashboard-optometris');
+          router.replace('/optometrist');
         } else {
           router.replace('/');
         }
@@ -108,8 +108,8 @@ export default function LoginScreen() {
               end={{ x: 1, y: 0 }}
               style={styles.loginButton}
             >
-              <TouchableOpacity 
-                style={styles.loginTouchable} 
+              <TouchableOpacity
+                style={styles.loginTouchable}
                 onPress={handleLogin}
                 disabled={toBoolean(loading)}
               >

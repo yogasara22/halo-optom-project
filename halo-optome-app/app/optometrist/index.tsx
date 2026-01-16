@@ -1,55 +1,82 @@
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { optometristAppService, ApiAppointment } from '../../services/optometristApp.service';
 import { medicalService, MedicalHistory } from '../../services/medicalService';
-import SearchBar from '../../components/optometrist/SearchBar';
+import CommissionCard from '../../components/optometrist/CommissionCard';
 import AppHeader from '../../components/optometrist/DashboardHeader';
 import UpcomingAppointmentCard from '../../components/optometrist/UpcomingAppointmentCard';
 import PatientScheduleCarousel, { PatientSchedule } from '../../components/optometrist/PatientScheduleCarousel';
 import RecentHistoryCarousel, { PatientHistoryItem } from '../../components/optometrist/RecentHistoryCarousel';
-import BottomNavigationBar from '../../components/optometrist/BottomNavigationBar';
 import { API_BASE_URL } from '../../constants/config';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
-  const [search, setSearch] = useState('');
   const [appointments, setAppointments] = useState<ApiAppointment[]>([]);
   const [nextApt, setNextApt] = useState<ApiAppointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [historyItems, setHistoryItems] = useState<PatientHistoryItem[]>([]);
+  const [commission, setCommission] = useState<{ balance: number; formatted: string }>({ balance: 0, formatted: 'Rp 0' });
 
-  useEffect(() => {
-    if (!user) {
-      router.replace('/auth/login');
-    } else {
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) {
+        router.replace('/auth/login');
+        return;
+      }
+
       setChecking(false);
 
-      // Fetch data from API
       const fetchData = async () => {
         try {
           setIsLoading(true);
           setError(null);
 
-          const [appointmentsData, next] = await Promise.all([
-            optometristAppService.getMyAppointments(),
-            optometristAppService.getMyNextAppointment()
-          ]);
+          let appointmentsData: ApiAppointment[] = [];
+          let next: ApiAppointment | null = null;
+          let commData = { balance: 0, formatted: 'Rp 0' };
 
-          setAppointments(appointmentsData);
-          setNextApt(next);
+          try {
+            commData = await optometristAppService.getCommissionBalance();
+            setCommission(commData);
+          } catch (e) {
+            console.log('Failed to fetch commission:', e);
+          }
+
+          try {
+            appointmentsData = await optometristAppService.getMyAppointments();
+            setAppointments(appointmentsData || []);
+          } catch (e) {
+            console.log('Failed to fetch appointments:', e);
+          }
+
+          try {
+            next = await optometristAppService.getMyNextAppointment();
+            setNextApt(next);
+          } catch (e) {
+            console.log('Failed to fetch next appointment:', e);
+          }
 
           const patientIds = Array.from(new Set(appointmentsData.map(a => a.patient?.id).filter(Boolean))) as string[];
           const limitedPatientIds = patientIds.slice(0, 5);
+
           const historiesByPatient = await Promise.all(
-            limitedPatientIds.map(pid => medicalService.getPatientMedicalRecords(pid))
+            limitedPatientIds.map(async pid => {
+              try {
+                return await medicalService.getPatientMedicalRecords(pid);
+              } catch (e) {
+                return [];
+              }
+            })
           );
+
           const allHistories: MedicalHistory[] = ([] as MedicalHistory[]).concat(...historiesByPatient);
           const patientMap = new Map<string, { name: string; avatar?: string; appts: ApiAppointment[] }>();
+
           appointmentsData.forEach(a => {
             const id = a.patient?.id;
             if (!id) return;
@@ -57,16 +84,22 @@ export default function DashboardScreen() {
             const appts = existing ? existing.appts.concat([a]) : [a];
             patientMap.set(id, { name: a.patient!.name, avatar: a.patient!.avatar_url, appts });
           });
+
           const sortedHistories = allHistories.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           const base = API_BASE_URL.replace(/\/?api$/, '');
+
           const items: PatientHistoryItem[] = sortedHistories.map(h => {
-            const info = patientMap.get(h.patientId);
+            if (!h) return null;
+            const pid = h.patientId;
+            const info = patientMap.get(pid);
             const apptSameDay = info?.appts.find(ap => ap.date === h.date);
             const time = apptSameDay ? (apptSameDay.start_time?.slice(0, 5) + (apptSameDay.end_time ? ` - ${apptSameDay.end_time.slice(0, 5)}` : '')) : '00:00';
             const svc = apptSameDay ? (apptSameDay.type === 'homecare' ? 'Homecare Pemeriksaan' : (apptSameDay.method === 'video' ? 'Konsultasi Video' : 'Konsultasi Chat')) : 'Pemeriksaan Mata';
+
             let pPhoto = info?.avatar;
             if (pPhoto && !/^https?:\/\//i.test(pPhoto)) pPhoto = base + pPhoto;
             if (pPhoto && /localhost|127\.0\.0\.1/.test(pPhoto)) pPhoto = pPhoto.replace(/^https?:\/\/[^/]+/, base);
+
             return {
               id: h.id,
               name: info?.name || 'Pasien',
@@ -76,7 +109,8 @@ export default function DashboardScreen() {
               serviceType: svc,
               diagnosis: h.condition,
             };
-          });
+          }).filter(Boolean) as PatientHistoryItem[];
+
           setHistoryItems(items);
         } catch (err) {
           console.error('Error fetching data:', err);
@@ -87,30 +121,19 @@ export default function DashboardScreen() {
       };
 
       fetchData();
-    }
-  }, [user]);
+    }, [user])
+  );
 
-  if (checking || !user) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={{ fontSize: 16, color: '#64748b', marginBottom: 8 }}>
-          Memuat dashboard...
-        </Text>
-        <ActivityIndicator size="large" color="#1876B8" />
-      </View>
-    );
-  }
-
-  // Fungsi untuk mengkonversi status dari API ke format yang diharapkan oleh komponen
   const convertStatus = (
     apiStatus: 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
-  ): 'Menunggu' | 'Berlangsung' | 'Selesai' => {
+  ): 'Menunggu' | 'Disetujui' | 'Berlangsung' | 'Selesai' => {
     switch (apiStatus) {
       case 'pending':
       case 'PENDING':
+        return 'Menunggu';
       case 'confirmed':
       case 'CONFIRMED':
-        return 'Menunggu';
+        return 'Disetujui';
       case 'ongoing':
         return 'Berlangsung';
       case 'completed':
@@ -123,8 +146,8 @@ export default function DashboardScreen() {
     }
   };
 
-  // Gunakan data dari API jika tersedia, jika tidak tampilkan data kosong
   const base = API_BASE_URL.replace(/\/?api$/, '');
+
   const patientSchedules = appointments.length > 0
     ? appointments.map(apt => ({
       id: apt.id,
@@ -147,7 +170,12 @@ export default function DashboardScreen() {
   const upcoming = nextApt ? {
     id: nextApt.id,
     name: nextApt.patient?.name || 'Pasien',
-    photo: nextApt.patient?.avatar_url ? { uri: nextApt.patient.avatar_url } : require('../../assets/images/avatar.png'),
+    photo: (() => {
+      let url = nextApt.patient?.avatar_url;
+      if (url && !/^https?:\/\//i.test(url)) url = base + url;
+      if (url && /localhost|127\.0\.0\.1/.test(url)) url = url.replace(/^https?:\/\/[^/]+/, base);
+      return url ? { uri: url } : require('../../assets/images/avatar.png');
+    })(),
     appointmentDate: new Date(nextApt.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
     appointmentTime: nextApt.start_time?.slice(0, 5) + (nextApt.end_time ? ` - ${nextApt.end_time.slice(0, 5)}` : ''),
     serviceType: nextApt.type === 'homecare' ? 'Homecare Pemeriksaan' : (nextApt.method === 'video' ? 'Konsultasi Video' : 'Konsultasi Chat'),
@@ -160,8 +188,12 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <AppHeader username={user.name} avatarUrl={user.avatar_url} />
-        <SearchBar value={search} onChangeText={setSearch} />
+        <AppHeader username={user?.name || 'Optometris'} avatarUrl={user?.avatar_url} />
+
+        <CommissionCard
+          balanceFormatted={commission.formatted}
+          onPayout={() => console.log('Payout requested')}
+        />
 
         <Text style={styles.sectionTitle}>Janji Temu Terdekat</Text>
         {isLoading ? (
@@ -176,7 +208,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Heading + Button Lihat Semua */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Daftar Jadwal Pasien</Text>
           <Text
@@ -193,12 +224,11 @@ export default function DashboardScreen() {
           <Text style={{ color: '#ef4444', marginBottom: 12 }}>{error}</Text>
         ) : (
           <PatientScheduleCarousel
-            data={patientSchedules.slice(0, 3)} // hanya tampilkan 3 jadwal
-            onCardPress={(item: PatientSchedule) => router.push(`/patient/${item.id}`)}
+            data={patientSchedules.slice(0, 3)}
+            onCardPress={(item: PatientSchedule) => router.push(`/optometrist/appointment/${item.id}`)}
           />
         )}
 
-        {/* Heading + Button Lihat Semua Riwayat */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Riwayat Pasien Terbaru</Text>
           <Text
@@ -210,14 +240,11 @@ export default function DashboardScreen() {
         </View>
 
         <RecentHistoryCarousel
-          data={recentHistories.slice(0, 3)} // hanya tampilkan 3 riwayat
+          data={recentHistories.slice(0, 3)}
           onCardPress={(item: PatientHistoryItem) => console.log('Riwayat pasien:', item)}
         />
 
       </ScrollView>
-
-      {/* Fixed Bottom Navigation Bar */}
-      <BottomNavigationBar />
     </View>
   );
 }

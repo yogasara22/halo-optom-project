@@ -13,6 +13,6 @@ router.put('/:id', authenticateToken, update);
 router.get('/', authenticateToken, getAll);
 
 // Webhook routes (tidak memerlukan autentikasi)
-router.post('/webhook/xendit', xenditWebhook);
+router.post('/xendit/callback', xenditWebhook);
 
 export default router;

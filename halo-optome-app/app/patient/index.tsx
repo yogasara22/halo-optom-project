@@ -9,7 +9,6 @@ import productService, { Product } from '../../services/productService';
 import patientService, { Appointment } from '../../services/patientService';
 import SearchBar from '../../components/patients/SearchBar';
 import AppHeader from '../../components/patients/DashboardHeader';
-import FeatureMenuGrid from '../../components/patients/FeatureMenuGrid';
 import UpcomingAppointmentCard from '../../components/patients/UpcomingAppointmentCard';
 import OptometrisCarousel from '../../components/patients/OptometrisCarousel';
 
@@ -142,20 +141,6 @@ export default function DashboardScreen() {
       >
         <AppHeader username={user.name} avatarUrl={user.avatar_url} />
         <SearchBar value={search} onChangeText={setSearch} />
-
-        <FeatureMenuGrid
-          onNavigate={(menuId: string) => {
-            if (menuId === 'consultation') {
-              router.push('/consultation');
-            } else if (menuId === 'homecare') {
-              router.push('/homecare-booking');
-            } else if (menuId === 'shop') {
-              router.push('/shop');
-            } else if (menuId === 'history') {
-              router.push('/service-history');
-            }
-          }}
-        />
 
         <Text style={styles.sectionTitle}>Jadwal Pemeriksaan Berikutnya</Text>
         {isLoading ? (

@@ -121,7 +121,7 @@ export default function BookAppointment() {
     setIsSubmitting(true);
     setError(null);
     try {
-      await patientService.bookAppointment({
+      console.log('🔄 Creating appointment with:', {
         optometrist_id: selectedOpt,
         type,
         method,
@@ -129,9 +129,35 @@ export default function BookAppointment() {
         start_time: time,
         location,
       });
-      router.replace('/appointments/confirmation');
+
+      const result = await patientService.bookAppointment({
+        optometrist_id: selectedOpt,
+        type,
+        method,
+        date,
+        start_time: time,
+        location,
+      });
+
+      console.log('✅ Appointment created:', result);
+
+      // Extract appointment ID from response
+      const appointmentId = (result as any).appointment?.id || (result as any).id;
+
+      console.log('📝 Appointment ID:', appointmentId);
+
+      if (!appointmentId) {
+        console.error('❌ No appointment ID found in response:', result);
+        setError('Gagal mendapatkan ID appointment');
+        return;
+      }
+
+      // Redirect to payment screen
+      console.log('🚀 Redirecting to payment screen with ID:', appointmentId);
+      router.push(`/appointments/payment?id=${appointmentId}`);
     } catch (e: any) {
-      setError(e?.message || 'Gagal membuat janji');
+      console.error('❌ Booking error:', e);
+      setError(e?.response?.data?.message || e?.message || 'Gagal membuat janji');
     } finally {
       setIsSubmitting(false);
     }

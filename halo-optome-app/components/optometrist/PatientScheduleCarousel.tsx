@@ -20,7 +20,7 @@ export interface PatientSchedule {
   appointmentDate: string;
   appointmentTime: string;
   serviceType: string;
-  status: 'Menunggu' | 'Berlangsung' | 'Selesai';
+  status: 'Menunggu' | 'Disetujui' | 'Berlangsung' | 'Selesai';
 }
 
 interface PatientScheduleCarouselProps {
@@ -70,12 +70,17 @@ const PatientScheduleCarousel: React.FC<PatientScheduleCarouselProps> = ({
               styles.statusBadge,
               item.status === 'Menunggu'
                 ? styles.statusWaiting
-                : item.status === 'Berlangsung'
-                ? styles.statusOngoing
-                : styles.statusDone,
+                : item.status === 'Disetujui'
+                  ? styles.statusApproved
+                  : item.status === 'Berlangsung'
+                    ? styles.statusOngoing
+                    : styles.statusDone,
             ]}
           >
-            <Text style={styles.statusText}>{item.status}</Text>
+            <Text style={[
+              styles.statusText,
+              item.status === 'Disetujui' && styles.statusTextApproved
+            ]}>{item.status}</Text>
           </View>
         </TouchableOpacity>
       )}
@@ -148,6 +153,9 @@ const styles = StyleSheet.create({
   statusWaiting: {
     backgroundColor: '#fef3c7',
   },
+  statusApproved: {
+    backgroundColor: '#dcfce7',
+  },
   statusOngoing: {
     backgroundColor: '#d1fae5',
   },
@@ -158,6 +166,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#0f172a',
     fontWeight: '600',
+  },
+  statusTextApproved: {
+    color: '#166534',
   },
 });
 

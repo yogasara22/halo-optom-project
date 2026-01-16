@@ -20,8 +20,8 @@ export const createAppointment = async (req: Request, res: Response) => {
       method === 'chat'
         ? optometrist.chat_commission_percentage || 0
         : method === 'video'
-        ? optometrist.video_commission_percentage || 0
-        : 0;
+          ? optometrist.video_commission_percentage || 0
+          : 0;
 
     // Tentukan harga berdasarkan ServicePricing (hanya untuk Online)
     let resolvedType: any = type === 'homecare' ? 'homecare' : 'online';
@@ -31,7 +31,7 @@ export const createAppointment = async (req: Request, res: Response) => {
         const pricingRepo = AppDataSource.getRepository(require('../entities/ServicePricing').ServicePricing);
         const pricing = await pricingRepo.findOne({ where: { type: 'online', method } });
         basePrice = pricing ? Number(pricing.base_price) : undefined;
-      } catch {}
+      } catch { }
     }
 
     const appointment = appointmentRepo.create({
@@ -141,5 +141,184 @@ export const updateAppointmentCommission = async (req: Request, res: Response) =
   } catch (err: any) {
     console.error('Error updateAppointmentCommission:', err);
     return res.status(500).json({ message: err.message || 'Internal server error' });
+  }
+};
+
+export const createAppointmentPayment = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { createAppointmentPaymentInvoice } = require('../services/appointment.service');
+
+    const result = await createAppointmentPaymentInvoice(id);
+
+    return res.status(200).json({
+      message: 'Payment invoice created successfully',
+      data: result,
+    });
+  } catch (err: any) {
+    console.error('Error createAppointmentPayment:', err);
+    return res.status(500).json({ message: err.message || 'Internal server error' });
+  }
+};
+
+export const getConsultationDetails = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user as User;
+
+    const appointmentRepo = AppDataSource.getRepository(Appointment);
+    const appointment = await appointmentRepo.findOne({
+      where: { id },
+      relations: ['patient', 'optometrist'],
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment tidak ditemukan' });
+    }
+
+    // Validate user is participant
+    if (appointment.patient.id !== user.id && appointment.optometrist.id !== user.id) {
+      return res.status(403).json({ message: 'Tidak diizinkan mengakses konsultasi ini' });
+    }
+
+    // Check payment status
+    if (appointment.payment_status !== 'paid') {
+      return res.status(403).json({ message: 'Appointment belum dibayar' });
+    }
+
+    const response: any = {
+      appointment_id: appointment.id,
+      type: appointment.type,
+      method: appointment.method,
+      status: appointment.status,
+      patient: {
+        id: appointment.patient.id,
+        name: appointment.patient.name,
+        avatar_url: appointment.patient.avatar_url,
+      },
+      optometrist: {
+        id: appointment.optometrist.id,
+        name: appointment.optometrist.name,
+        avatar_url: appointment.optometrist.avatar_url,
+      },
+    };
+
+    // Add video details if video consultation
+    if (appointment.method === 'video' && appointment.video_room_id) {
+      const { generateJoinRoomToken } = require('../services/videosdk.service');
+      const token = generateJoinRoomToken(appointment.video_room_id, user.id);
+
+      response.video = {
+        room_id: appointment.video_room_id,
+        token,
+      };
+    }
+
+    // Add chat details if chat consultation
+    if (appointment.method === 'chat' && appointment.chat_room_id) {
+      response.chat = {
+        room_id: appointment.chat_room_id,
+      };
+    }
+
+    return res.json(response);
+  } catch (err: any) {
+    console.error('Error getConsultationDetails:', err);
+    return res.status(500).json({ message: err.message || 'Internal server error' });
+  }
+};
+
+
+
+export const getAppointmentById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user as User;
+
+    const appointmentRepo = AppDataSource.getRepository(Appointment);
+    const appointment = await appointmentRepo.findOne({
+      where: { id },
+      relations: ['patient', 'optometrist'],
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment tidak ditemukan' });
+    }
+
+    // Access control
+    if (user.role !== 'admin' && appointment.patient.id !== user.id && appointment.optometrist.id !== user.id) {
+      return res.status(403).json({ message: 'Tidak diizinkan mengakses data ini' });
+    }
+
+    return res.json(appointment);
+  } catch (err) {
+    console.error('Error getAppointmentById:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const updateAppointmentStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const user = (req as any).user as User;
+
+    const appointmentRepo = AppDataSource.getRepository(Appointment);
+    const appointment = await appointmentRepo.findOne({
+      where: { id },
+      relations: ['optometrist'],
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment tidak ditemukan' });
+    }
+
+    // Only optometrist (or admin) can accept/reject
+    if (user.role !== 'admin' && appointment.optometrist.id !== user.id) {
+      return res.status(403).json({ message: 'Hanya optometris yang dapat mengubah status appointment' });
+    }
+
+    appointment.status = status;
+    await appointmentRepo.save(appointment);
+
+    return res.json(appointment);
+  } catch (err) {
+    console.error('Error updateAppointmentStatus:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const rescheduleAppointment = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { date, start_time } = req.body;
+    const user = (req as any).user as User;
+
+    const appointmentRepo = AppDataSource.getRepository(Appointment);
+    const appointment = await appointmentRepo.findOne({
+      where: { id },
+      relations: ['optometrist', 'patient'],
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment tidak ditemukan' });
+    }
+
+    // Only optometrist (or admin) can reschedule for now (simplification)
+    if (user.role !== 'admin' && appointment.optometrist.id !== user.id) {
+      return res.status(403).json({ message: 'Hanya optometris yang dapat menjadwalkan ulang' });
+    }
+
+    appointment.date = date;
+    appointment.start_time = start_time;
+    // Reset status to confirmed if it was something else? Or keep as is.
+    // Usually rescheduling might require re-confirmation, but for simplicity let's just save.
+
+    await appointmentRepo.save(appointment);
+
+    return res.json(appointment);
+  } catch (err) {
+    console.error('Error rescheduleAppointment:', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };

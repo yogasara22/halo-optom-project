@@ -3,11 +3,40 @@ import { AppDataSource } from '../config/ormconfig';
 import { User, UserRole } from '../entities/User';
 import { Schedule } from '../entities/Schedule';
 import { Review } from '../entities/Review';
+import { Appointment } from '../entities/Appointment';
 
 const mapSchedule = (s: Schedule) => ({
   day: s.day_of_week,
   time: `${s.start_time?.slice(0, 5)} - ${s.end_time?.slice(0, 5)}`,
 });
+
+export const getCommissionBalance = async (req: Request, res: Response) => {
+  try {
+    const customReq = req as any;
+    const userId = customReq.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const result = await AppDataSource.getRepository(Appointment)
+      .createQueryBuilder('appointment')
+      .select('SUM(appointment.commission_amount)', 'total')
+      .where('appointment.optometrist_id = :userId', { userId })
+      .andWhere('appointment.payment_status = :status', { status: 'paid' })
+      .getRawOne();
+
+    const balance = result?.total ? parseFloat(result.total) : 0;
+
+    return res.json({
+      balance: balance,
+      formatted: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(balance)
+    });
+  } catch (error) {
+    console.error('Error fetching commission balance:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 export const getOptometrists = async (_req: Request, res: Response) => {
   try {

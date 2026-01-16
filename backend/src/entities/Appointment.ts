@@ -48,10 +48,10 @@ export class Appointment {
   @Column({ type: 'text', nullable: true })
   location?: string; // for homecare
 
-  @Column({ type: 'enum', enum: ['pending','confirmed','ongoing','completed','cancelled'], default: 'pending' })
+  @Column({ type: 'enum', enum: ['pending', 'confirmed', 'ongoing', 'completed', 'cancelled'], default: 'pending' })
   status!: AppointmentStatus;
 
-  @Column({ type: 'enum', enum: ['unpaid','paid'], default: 'unpaid' })
+  @Column({ type: 'enum', enum: ['unpaid', 'paid'], default: 'unpaid' })
   payment_status!: PaymentStatus;
 
   @Column({ type: 'float', nullable: true })
@@ -75,9 +75,12 @@ export class Appointment {
   @Column({ type: 'varchar', nullable: true })
   video_room_id?: string; // VideoSDK room ID
 
+  @Column({ type: 'varchar', nullable: true })
+  chat_room_id?: string; // Chat room ID for chat consultations
+
   @OneToOne(() => MedicalRecord, mr => mr.appointment, { cascade: true })
   medical_record?: MedicalRecord;
-  
+
   @OneToOne(() => Payment, payment => payment.appointment, { nullable: true })
   payment?: Payment;
 

@@ -17,7 +17,7 @@ interface UpcomingAppointmentCardProps {
     appointmentDate: string;
     appointmentTime: string;
     serviceType: string;
-    status: 'Menunggu' | 'Berlangsung' | 'Selesai';
+    status: 'Menunggu' | 'Disetujui' | 'Berlangsung' | 'Selesai';
   };
 }
 
@@ -43,43 +43,33 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
           <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
         </View>
 
-        {/* Grid detail waktu, keluhan, dan layanan */}
+        {/* Grid detail waktu dan layanan */}
         <View style={styles.detailsGrid}>
-            {/* Kolom kiri */}
-            <View style={styles.detailColumn}>
-                <View style={styles.detailBox}>
-                    <Ionicons name="calendar-outline" size={18} color="#fff" />
-                    <Text style={styles.detailText}>{appointment.appointmentDate}</Text>
-                </View>
-                <View style={styles.detailBox}>
-                    <Ionicons name="time-outline" size={18} color="#fff" />
-                    <Text style={styles.detailText}>{appointment.appointmentTime}</Text>
-                </View>
+          <View style={styles.detailColumn}>
+            <View style={styles.detailBox}>
+              <Ionicons name="calendar-outline" size={18} color="#fff" />
+              <Text style={styles.detailText}>{appointment.appointmentDate}</Text>
             </View>
-
-            {/* Kolom kanan */}
-            <View style={styles.detailColumn}>
-                <View style={styles.detailBox}>
-                    <Ionicons name="alert-circle-outline" size={18} color="#fff" />
-                    <Text style={styles.detailText}>Mata lelah dan buram</Text>
-                </View>
-                <View style={styles.detailBox}>
-                    <Ionicons name="videocam-outline" size={18} color="#fff" />
-                    <Text style={styles.detailText}>Konsultasi Online</Text>
-                </View>
+            <View style={styles.detailBox}>
+              <Ionicons name="time-outline" size={18} color="#fff" />
+              <Text style={styles.detailText}>{appointment.appointmentTime}</Text>
             </View>
+          </View>
         </View>
 
-        {/* Tombol aksi */}
+        {/* Tombol aksi conditional */}
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.btnAction}>
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
-            <Text style={styles.btnText}>Chat</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btnAction}>
-            <Ionicons name="videocam-outline" size={18} color="#fff" />
-            <Text style={styles.btnText}>Video</Text>
-          </TouchableOpacity>
+          {appointment.serviceType.toLowerCase().includes('video') ? (
+            <TouchableOpacity style={styles.btnAction}>
+              <Ionicons name="videocam-outline" size={18} color="#fff" />
+              <Text style={styles.btnText}>Video Call</Text>
+            </TouchableOpacity>
+          ) : appointment.serviceType.toLowerCase().includes('chat') ? (
+            <TouchableOpacity style={styles.btnAction}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
+              <Text style={styles.btnText}>Chat</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     </View>
@@ -104,43 +94,43 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#1876B8',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 16,
     zIndex: 1,
-    minHeight: 170,
+    // minHeight removed to let content dictate size
     justifyContent: 'space-between',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#f1f5f9',
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
   info: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 10,
   },
   name: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#fff',
   },
   serviceType: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#f0fdf4',
     marginTop: 2,
   },
   detailsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 12,
+    marginVertical: 8,
   },
   detailColumn: {
     flex: 1,

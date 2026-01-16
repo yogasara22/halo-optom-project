@@ -7,12 +7,12 @@ import Select from '@/components/ui/Select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  ShoppingCart, 
-  Calendar, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  ShoppingCart,
+  Calendar,
   DollarSign,
   Star,
   Download,
@@ -43,7 +43,7 @@ interface AnalyticsData {
 interface RevenueData {
   timeline: Array<{ period: string; revenue: number; transactions: number }>;
   bySource: Array<{ source: string; revenue: number; transactions: number }>;
-  summary: { totalRevenue: number; totalTransactions: number; averageTransaction: number };
+  summary: { totalRevenue: number; totalTransactions: number; averageTransaction: number; growthRate: number };
 }
 
 const AnalyticsPage = () => {
@@ -60,44 +60,13 @@ const AnalyticsPage = () => {
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
-      // Menggunakan mock data dari analyticsService karena endpoint belum tersedia
-      // Ini mencegah error 404 dan error parsing JSON
-      const analytics = analyticsService.generateMockDashboardAnalytics();
-      const revenue = analyticsService.generateMockRevenueAnalytics();
-      
+      const analytics = await analyticsService.getDashboardAnalytics(period);
+      const revenue = await analyticsService.getRevenueAnalytics(period);
+
       setAnalyticsData(analytics);
       setRevenueData(revenue);
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      // Mock data for demonstration
-      setAnalyticsData({
-        overview: {
-          totalUsers: 1250,
-          totalOrders: 890,
-          totalAppointments: 456,
-          totalRevenue: 125000,
-          totalReviews: 234
-        },
-        growth: {
-          users: { current: 45, previous: 38, percentage: 18.4 },
-          orders: { current: 123, previous: 98, percentage: 25.5 },
-          appointments: { current: 67, previous: 72, percentage: -6.9 },
-          revenue: { current: 15600, previous: 12800, percentage: 21.9 }
-        }
-      });
-      
-      setRevenueData({
-        timeline: [
-          { period: '2024-01-01', revenue: 5200, transactions: 12 },
-          { period: '2024-01-02', revenue: 4800, transactions: 10 },
-          { period: '2024-01-03', revenue: 6100, transactions: 15 }
-        ],
-        bySource: [
-          { source: 'appointments', revenue: 45000, transactions: 150 },
-          { source: 'orders', revenue: 80000, transactions: 320 }
-        ],
-        summary: { totalRevenue: 125000, totalTransactions: 470, averageTransaction: 265.96 }
-      });
     } finally {
       setLoading(false);
     }
@@ -114,11 +83,12 @@ const AnalyticsPage = () => {
   const formatPercentage = (percentage: number) => {
     const isPositive = percentage >= 0;
     return (
-      <div className={`flex items-center gap-1 ${
-        isPositive ? 'text-green-600' : 'text-red-600'
-      }`}>
-        {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-        <span className="font-medium">{Math.abs(percentage).toFixed(1)}%</span>
+      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${isPositive
+        ? 'bg-emerald-50 text-emerald-700'
+        : 'bg-rose-50 text-rose-700'
+        }`}>
+        {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+        <span>{Math.abs(percentage).toFixed(1)}%</span>
       </div>
     );
   };
@@ -142,29 +112,31 @@ const AnalyticsPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-8 p-8 max-w-[1600px] mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Analytics & Reports</h1>
-            <p className="text-gray-600 mt-1">Comprehensive insights into your business performance</p>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Analytics & Reports</h1>
+            <p className="text-gray-500 mt-2 text-base">Comprehensive insights into your business performance</p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-3">
-            <Select 
-              value={period} 
-              onChange={setPeriod}
-              options={[
-                { value: "7", label: "Last 7 days" },
-                { value: "30", label: "Last 30 days" },
-                { value: "90", label: "Last 90 days" },
-                { value: "365", label: "Last year" }
-              ]}
-              placeholder="Select period"
-              className="w-[180px]"
-            />
-            
-            <Button variant="outline" onClick={() => exportReport('dashboard')}>
+            <div className="w-[180px]">
+              <Select
+                value={period}
+                onChange={setPeriod}
+                options={[
+                  { value: "7", label: "Last 7 days" },
+                  { value: "30", label: "Last 30 days" },
+                  { value: "90", label: "Last 90 days" },
+                  { value: "365", label: "Last year" }
+                ]}
+                placeholder="Select period"
+                className="w-full"
+              />
+            </div>
+
+            <Button variant="outline" onClick={() => exportReport('dashboard')} className="shadow-sm">
               <Download className="w-4 h-4 mr-2" />
               Export Report
             </Button>
@@ -172,40 +144,35 @@ const AnalyticsPage = () => {
         </div>
 
         {/* Analytics Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="revenue" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Revenue
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="appointments" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Appointments
-            </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <ShoppingCart className="w-4 h-4" />
-              Products
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <div className="border-b border-gray-100 pb-1">
+            <TabsList className="grid w-full sm:w-auto sm:inline-grid grid-cols-2 bg-transparent p-0 gap-6">
+              {[
+                { value: 'overview', icon: Activity, label: 'Overview' },
+                { value: 'revenue', icon: DollarSign, label: 'Revenue' },
+              ].map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-sm text-gray-500 hover:text-gray-900 transition-all duration-200"
+                >
+                  <tab.icon className="w-4 h-4" />
+                  <span className="font-medium">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-8 animate-in fade-in-50 duration-500">
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[...Array(4)].map((_, i) => (
-                  <Card key={i}>
+                  <Card key={i} className="border-none shadow-sm rounded-2xl bg-gray-50/50">
                     <CardContent className="p-6">
-                      <Skeleton className="h-4 w-20 mb-2" />
-                      <Skeleton className="h-8 w-16 mb-2" />
-                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-12 w-12 rounded-xl mb-4" />
+                      <Skeleton className="h-4 w-24 mb-2" />
+                      <Skeleton className="h-8 w-32" />
                     </CardContent>
                   </Card>
                 ))}
@@ -214,117 +181,174 @@ const AnalyticsPage = () => {
               <>
                 {/* Key Metrics Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                  {/* Total Users */}
+                  <Card className="border border-gray-100/50 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden group">
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-blue-600 text-sm font-medium">Total Users</p>
-                          <p className="text-2xl font-bold text-blue-900">
-                            {analyticsData?.overview.totalUsers.toLocaleString()}
-                          </p>
-                          {formatPercentage(analyticsData?.growth.users.percentage || 0)}
-                        </div>
-                        <div className="p-3 bg-blue-200 rounded-full">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                           <Users className="w-6 h-6 text-blue-600" />
                         </div>
+                        {formatPercentage(analyticsData?.growth.users.percentage || 0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-1">Total Users</p>
+                        <h3 className="text-xl font-bold tracking-tight text-gray-900">
+                          {analyticsData?.overview.totalUsers.toLocaleString()}
+                        </h3>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                  {/* Total Revenue */}
+                  <Card className="border border-gray-100/50 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden group">
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-green-600 text-sm font-medium">Total Revenue</p>
-                          <p className="text-2xl font-bold text-green-900">
-                            {formatCurrency(analyticsData?.overview.totalRevenue || 0)}
-                          </p>
-                          {formatPercentage(analyticsData?.growth.revenue.percentage || 0)}
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <DollarSign className="w-6 h-6 text-emerald-600" />
                         </div>
-                        <div className="p-3 bg-green-200 rounded-full">
-                          <DollarSign className="w-6 h-6 text-green-600" />
-                        </div>
+                        {formatPercentage(analyticsData?.growth.revenue.percentage || 0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-1">Total Revenue</p>
+                        <h3 className="text-xl font-bold tracking-tight text-gray-900">
+                          {formatCurrency(analyticsData?.overview.totalRevenue || 0)}
+                        </h3>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                  {/* Active Appointments */}
+                  <Card className="border border-gray-100/50 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden group">
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-purple-600 text-sm font-medium">Appointments</p>
-                          <p className="text-2xl font-bold text-purple-900">
-                            {analyticsData?.overview.totalAppointments.toLocaleString()}
-                          </p>
-                          {formatPercentage(analyticsData?.growth.appointments.percentage || 0)}
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <Calendar className="w-6 h-6 text-violet-600" />
                         </div>
-                        <div className="p-3 bg-purple-200 rounded-full">
-                          <Calendar className="w-6 h-6 text-purple-600" />
-                        </div>
+                        {formatPercentage(analyticsData?.growth.appointments.percentage || 0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-1">Active Appointments</p>
+                        <h3 className="text-xl font-bold tracking-tight text-gray-900">
+                          {analyticsData?.overview.totalAppointments.toLocaleString()}
+                        </h3>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                  {/* Total Orders */}
+                  <Card className="border border-gray-100/50 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden group">
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-orange-600 text-sm font-medium">Orders</p>
-                          <p className="text-2xl font-bold text-orange-900">
-                            {analyticsData?.overview.totalOrders.toLocaleString()}
-                          </p>
-                          {formatPercentage(analyticsData?.growth.orders.percentage || 0)}
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <ShoppingCart className="w-6 h-6 text-amber-600" />
                         </div>
-                        <div className="p-3 bg-orange-200 rounded-full">
-                          <ShoppingCart className="w-6 h-6 text-orange-600" />
-                        </div>
+                        {formatPercentage(analyticsData?.growth.orders.percentage || 0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-1">Total Orders</p>
+                        <h3 className="text-xl font-bold tracking-tight text-gray-900">
+                          {analyticsData?.overview.totalOrders.toLocaleString()}
+                        </h3>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
 
                 {/* Charts Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <LineChart className="w-5 h-5" />
-                        Revenue Trend
+                <div className="flex flex-col gap-8">
+                  {/* Revenue by Source - Now at Top & Horizontal */}
+                  <Card className="border border-gray-100/50 shadow-sm rounded-2xl overflow-hidden bg-white">
+                    <CardHeader className="border-b border-gray-50 p-6 bg-linear-to-r from-gray-50/50 to-transparent">
+                      <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-800">
+                        <PieChart className="w-5 h-5 text-blue-600" />
+                        Revenue by Source
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                        <div className="text-center">
-                          <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                          <p className="text-gray-500">Revenue chart will be displayed here</p>
-                        </div>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {revenueData?.bySource.map((source, index) => (
+                          <div
+                            key={index}
+                            className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/30 p-5 transition-all duration-300 hover:border-blue-100 hover:bg-blue-50/30 hover:shadow-md"
+                          >
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-900/5 ${source.source === 'appointments' ? 'text-blue-600' : 'text-emerald-600'
+                                  }`}>
+                                  {source.source === 'appointments' ? (
+                                    <Calendar className="h-5 w-5" />
+                                  ) : (
+                                    <ShoppingCart className="h-5 w-5" />
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium text-gray-600 capitalize">
+                                  {source.source}
+                                </span>
+                              </div>
+                              {revenueData && revenueData.summary.totalRevenue > 0 && (
+                                <div className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${source.source === 'appointments'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-emerald-100 text-emerald-700'
+                                  }`}>
+                                  {((source.revenue / revenueData.summary.totalRevenue) * 100).toFixed(0)}%
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="space-y-1">
+                              <p className="text-2xl font-bold tracking-tight text-gray-900">
+                                {formatCurrency(source.revenue)}
+                              </p>
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Users className="h-4 w-4" />
+                                <span>{source.transactions} transactions</span>
+                              </div>
+                            </div>
+
+                            {/* Decorative gradient blob */}
+                            <div className={`absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-10 blur-2xl transition-all duration-500 group-hover:scale-150 ${source.source === 'appointments' ? 'bg-blue-500' : 'bg-emerald-500'
+                              }`} />
+                          </div>
+                        ))}
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <PieChart className="w-5 h-5" />
-                        Revenue by Source
+                  {/* Revenue Trend - Below Source */}
+                  <Card className="border border-gray-100/50 shadow-sm rounded-2xl overflow-hidden bg-white">
+                    <CardHeader className="border-b border-gray-50 p-6 flex flex-row items-center justify-between bg-linear-to-r from-gray-50/50 to-transparent">
+                      <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-800">
+                        <LineChart className="w-5 h-5 text-violet-600" />
+                        Revenue Trend
                       </CardTitle>
+                      <Select
+                        value={period}
+                        onChange={setPeriod}
+                        options={[
+                          { value: "7", label: "7 Days" },
+                          { value: "30", label: "30 Days" },
+                          { value: "90", label: "3 Months" }
+                        ]}
+                        className="w-32! py-2! text-sm"
+                      />
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {revenueData?.bySource.map((source, index) => (
-                          <div key={index} className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-3 h-3 rounded-full ${
-                                source.source === 'appointments' ? 'bg-blue-500' : 'bg-green-500'
-                              }`} />
-                              <span className="capitalize font-medium">{source.source}</span>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold">{formatCurrency(source.revenue)}</p>
-                              <p className="text-sm text-gray-500">{source.transactions} transactions</p>
-                            </div>
+                    <CardContent className="p-6">
+                      <div className="h-[400px] w-full bg-linear-to-b from-white to-gray-50/50 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden group">
+
+                        {/* Placeholder Content */}
+                        <div className="z-10 relative">
+                          <div className="w-20 h-20 bg-white shadow-sm ring-1 ring-gray-900/5 rounded-2xl flex items-center justify-center mx-auto mb-6 transform group-hover:scale-110 transition-transform duration-500">
+                            <BarChart3 className="w-10 h-10 text-gray-300 group-hover:text-blue-500 transition-colors duration-300" />
                           </div>
-                        ))}
+                          <h3 className="text-gray-900 font-semibold text-lg mb-2">Interactive Chart</h3>
+                          <p className="text-gray-500 max-w-sm mx-auto">
+                            A detailed interactive revenue chart will be visualized here, showing trends over time.
+                          </p>
+                        </div>
+
+                        {/* Background Decoration */}
+                        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#3b82f6_1px,transparent_1px)] bg-size-[16px_16px]" />
+                        <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-white to-transparent" />
                       </div>
                     </CardContent>
                   </Card>
@@ -336,12 +360,12 @@ const AnalyticsPage = () => {
           {/* Revenue Tab */}
           <TabsContent value="revenue" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card>
+              <Card className="border border-gray-100/50 shadow-sm rounded-2xl">
                 <CardHeader>
                   <CardTitle>Total Revenue</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-green-600">
+                  <p className="text-xl font-bold text-emerald-600">
                     {formatCurrency(revenueData?.summary.totalRevenue || 0)}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
@@ -350,64 +374,30 @@ const AnalyticsPage = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border border-gray-100/50 shadow-sm rounded-2xl">
                 <CardHeader>
                   <CardTitle>Average Transaction</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-blue-600">
+                  <p className="text-xl font-bold text-blue-600">
                     {formatCurrency(revenueData?.summary.averageTransaction || 0)}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">Per transaction</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border border-gray-100/50 shadow-sm rounded-2xl">
                 <CardHeader>
                   <CardTitle>Growth Rate</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
-                    {formatPercentage(analyticsData?.growth.revenue.percentage || 0)}
+                  <div className="text-xl font-bold text-gray-900">
+                    {formatPercentage(revenueData?.summary.growthRate || 0)}
                   </div>
                   <p className="text-sm text-gray-500 mt-1">vs previous period</p>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          {/* Other tabs content would go here */}
-          <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">User analytics content will be implemented here</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="appointments">
-            <Card>
-              <CardHeader>
-                <CardTitle>Appointment Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Appointment analytics content will be implemented here</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="products">
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">Product analytics content will be implemented here</p>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>

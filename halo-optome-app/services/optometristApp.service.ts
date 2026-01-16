@@ -53,6 +53,30 @@ class OptometristAppService {
     const list = await this.getMyAppointments();
     return list.filter(a => a.type === 'homecare');
   }
+  async getCommissionBalance(): Promise<{ balance: number; formatted: string }> {
+    try {
+      const response = await api.get('/optometrists/balance');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching commission balance:', error);
+      return { balance: 0, formatted: 'Rp 0' };
+    }
+  }
+
+  async getAppointmentDetail(id: string): Promise<ApiAppointment> {
+    const res = await api.get(`/appointments/${id}`);
+    return res.data;
+  }
+
+  async updateAppointmentStatus(id: string, status: 'confirmed' | 'cancelled' | 'completed'): Promise<ApiAppointment> {
+    const res = await api.patch(`/appointments/${id}/status`, { status });
+    return res.data;
+  }
+
+  async rescheduleAppointment(id: string, date: string, start_time: string): Promise<ApiAppointment> {
+    const res = await api.patch(`/appointments/${id}/reschedule`, { date, start_time });
+    return res.data;
+  }
 }
 
 export const optometristAppService = new OptometristAppService();

@@ -59,7 +59,8 @@ export const getMedicalRecordsByPatient = async (req: Request, res: Response) =>
     const { patient_id } = req.params;
     const user = (req as any).user as User;
 
-    if (user.role !== UserRole.Admin && user.id !== String(patient_id)) {
+    // Allow Admin, the Patient themselves, OR an Optometrist
+    if (user.role !== UserRole.Admin && user.role !== UserRole.Optometris && user.id !== String(patient_id)) {
       return res.status(403).json({ message: 'Tidak diizinkan melihat catatan medis orang lain' });
     }
 

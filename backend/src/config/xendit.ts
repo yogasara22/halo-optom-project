@@ -4,27 +4,29 @@ import { Xendit } from 'xendit-node';
 dotenv.config();
 
 const {
-  XENDIT_SECRET_KEY,
+  XENDIT_API_KEY,
   XENDIT_PUBLIC_KEY,
-  XENDIT_WEBHOOK_TOKEN,
+  XENDIT_CALLBACK_URL,
+  XENDIT_WEBHOOK_VERIFICATION_TOKEN,
   XENDIT_IS_PRODUCTION,
 } = process.env;
 
-if (!XENDIT_SECRET_KEY) {
-  throw new Error('XENDIT_SECRET_KEY wajib diatur di .env');
+if (!XENDIT_API_KEY) {
+  throw new Error('XENDIT_API_KEY wajib diatur di .env');
 }
 
 const isProduction = XENDIT_IS_PRODUCTION === 'true';
 
 // Initialize Xendit client
 export const xenditClient = new Xendit({
-  secretKey: XENDIT_SECRET_KEY,
+  secretKey: XENDIT_API_KEY,
 });
 
 export const xenditConfig = {
-  secretKey: XENDIT_SECRET_KEY,
+  secretKey: XENDIT_API_KEY,
   publicKey: XENDIT_PUBLIC_KEY,
-  webhookToken: XENDIT_WEBHOOK_TOKEN,
+  callbackUrl: XENDIT_CALLBACK_URL,
+  webhookVerificationToken: XENDIT_WEBHOOK_VERIFICATION_TOKEN, // Token dari Xendit Dashboard untuk verifikasi webhook
   isProduction,
 };
 

@@ -100,7 +100,9 @@ const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
-    return format(new Date(dateString), 'dd MMMM yyyy, HH:mm', { locale: id });
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
+    return format(date, 'dd MMMM yyyy, HH:mm', { locale: id });
   };
 
   return (
@@ -191,15 +193,7 @@ const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Payment Details */}
-          {payment.payment_details && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-medium mb-2">Detail Pembayaran</h3>
-              <pre className="text-xs bg-gray-100 p-3 rounded overflow-auto max-h-40">
-                {JSON.stringify(JSON.parse(payment.payment_details), null, 2)}
-              </pre>
-            </div>
-          )}
+
 
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 mt-4">
@@ -210,7 +204,7 @@ const PaymentDetailModal: React.FC<PaymentDetailModalProps> = ({
             >
               Tutup
             </Button>
-            
+
             {payment.status === 'pending' && (
               <>
                 <Button

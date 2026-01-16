@@ -8,6 +8,10 @@ function removePassword(obj: any): any {
     return obj.map(removePassword);
   }
 
+  if (obj instanceof Date) {
+    return obj;
+  }
+
   if (typeof obj === "object") {
     const newObj: any = {};
     for (const key of Object.keys(obj)) {

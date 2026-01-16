@@ -8,9 +8,9 @@ import Select from '@/components/ui/Select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { 
-  Download, 
-  FileText, 
+import {
+  Download,
+  FileText,
   Filter,
   Search,
   Users,
@@ -22,6 +22,9 @@ import {
   RefreshCw
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import analyticsService from '@/services/analytics.service';
+import Modal from '@/components/ui/Modal';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ReportData {
   id: string;
@@ -43,6 +46,7 @@ interface FilterOptions {
 }
 
 const ReportsPage = () => {
+  const { toast } = useToast();
   const [reports, setReports] = useState<ReportData[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
@@ -53,6 +57,9 @@ const ReportsPage = () => {
     status: 'all',
     searchTerm: ''
   });
+  const [previewData, setPreviewData] = useState<{ columns: any[], data: any[] } | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -61,53 +68,8 @@ const ReportsPage = () => {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      // Simulate API call - replace with actual endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data
-      const mockReports: ReportData[] = [
-        {
-          id: '1',
-          type: 'users',
-          title: 'User Registration Report',
-          description: 'Complete list of user registrations with demographics',
-          generatedAt: '2024-01-15T10:30:00Z',
-          status: 'completed',
-          downloadUrl: '/api/reports/download/1',
-          recordCount: Math.floor(Math.random() * 2000) + 500
-        },
-        {
-          id: '2',
-          type: 'orders',
-          title: 'Sales Report - January 2024',
-          description: 'Monthly sales performance and order analytics',
-          generatedAt: '2024-01-14T15:45:00Z',
-          status: 'completed',
-          downloadUrl: '/api/reports/download/2',
-          recordCount: Math.floor(Math.random() * 1000) + 300
-        },
-        {
-          id: '3',
-          type: 'appointments',
-          title: 'Appointment Analytics Report',
-          description: 'Appointment trends and optometrist performance',
-          generatedAt: '2024-01-13T09:15:00Z',
-          status: 'completed',
-          downloadUrl: '/api/reports/download/3',
-          recordCount: Math.floor(Math.random() * 500) + 200
-        },
-        {
-          id: '4',
-          type: 'revenue',
-          title: 'Revenue Analysis Q4 2023',
-          description: 'Quarterly revenue breakdown and growth analysis',
-          generatedAt: '2024-01-12T14:20:00Z',
-          status: 'processing',
-          recordCount: Math.floor(Math.random() * 400) + 100
-        }
-      ];
-      
-      setReports(mockReports);
+      const data = await analyticsService.getReports();
+      setReports(data);
     } catch (error) {
       console.error('Error fetching reports:', error);
     } finally {
@@ -118,41 +80,55 @@ const ReportsPage = () => {
   const generateReport = async (type: string) => {
     setGenerating(type);
     try {
-      // Simulate report generation
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      const newReport: ReportData = {
-        id: Date.now().toString(),
-        type,
-        title: `${type.charAt(0).toUpperCase() + type.slice(1)} Report`,
-        description: `Generated ${type} report with current data`,
-        generatedAt: new Date().toISOString(),
-        status: 'completed',
-        downloadUrl: `/api/reports/download/${Date.now()}`,
-        recordCount: Math.floor(Math.random() * 1000) + 100
-      };
-      
+      const newReport = await analyticsService.generateReport(type);
       setReports(prev => [newReport, ...prev]);
+
+      toast({
+        title: "Report Generated",
+        description: "Your report is ready and downloading automatically.",
+      });
+
+      // Auto download
+      downloadReport(newReport);
     } catch (error) {
       console.error('Error generating report:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate report. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setGenerating(null);
     }
   };
 
   const downloadReport = async (report: ReportData) => {
-    if (!report.downloadUrl) return;
-    
     try {
-      // Simulate download
+      const blob = await analyticsService.downloadReport(report.id);
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
-      link.href = report.downloadUrl;
-      link.download = `${report.title.replace(/\s+/g, '_')}_${new Date(report.generatedAt).toISOString().split('T')[0]}.csv`;
+      link.href = url;
+      // Use .xlsx extension
+      link.download = `${report.title.replace(/\s+/g, '_')}_${new Date(report.generatedAt).toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download error:', error);
+    }
+  };
+
+  const handlePreview = async (report: ReportData) => {
+    setPreviewLoading(true);
+    try {
+      const data = await analyticsService.getReportPreview(report.id);
+      setPreviewData(data);
+      setShowPreview(true);
+    } catch (error) {
+      console.error('Preview error:', error);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -162,7 +138,7 @@ const ReportsPage = () => {
       processing: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       failed: 'bg-red-100 text-red-800 border-red-200'
     };
-    
+
     return (
       <Badge className={variants[status]}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -178,7 +154,7 @@ const ReportsPage = () => {
       revenue: TrendingUp,
       reviews: Star
     };
-    
+
     const Icon = icons[type as keyof typeof icons] || FileText;
     return <Icon className="w-5 h-5" />;
   };
@@ -187,11 +163,11 @@ const ReportsPage = () => {
     if (filters.reportType !== 'all' && report.type !== filters.reportType) return false;
     if (filters.status !== 'all' && report.status !== filters.status) return false;
     if (filters.searchTerm && !report.title.toLowerCase().includes(filters.searchTerm.toLowerCase())) return false;
-    
+
     const reportDate = new Date(report.generatedAt);
     if (filters.dateFrom && reportDate < filters.dateFrom) return false;
     if (filters.dateTo && reportDate > filters.dateTo) return false;
-    
+
     return true;
   });
 
@@ -204,7 +180,7 @@ const ReportsPage = () => {
             <h1 className="text-3xl font-bold text-gray-900">Reports & Export</h1>
             <p className="text-gray-600 mt-1">Generate and download comprehensive business reports</p>
           </div>
-          
+
           <Button onClick={fetchReports} variant="outline">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -241,11 +217,11 @@ const ReportsPage = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Report Type</label>
-                    <Select 
-                      value={filters.reportType} 
+                    <Select
+                      value={filters.reportType}
                       onChange={(value) => setFilters(prev => ({ ...prev, reportType: value }))}
                       options={[
                         { value: "all", label: "All Types" },
@@ -257,21 +233,22 @@ const ReportsPage = () => {
                       ]}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Status</label>
-                    <Select 
-                      value={filters.status} 
+                    <Select
+                      value={filters.status}
                       onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
                       options={[
                         { value: "all", label: "All Status" },
                         { value: "completed", label: "Completed" },
                         { value: "processing", label: "Processing" },
-                        { value: "failed", label: "Failed" }
+                        { value: "failed", label: "Failed" },
+                        { value: "pending", label: "Pending" }
                       ]}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Date From</label>
                     <Input
@@ -284,7 +261,7 @@ const ReportsPage = () => {
                       className="w-full"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Date To</label>
                     <Input
@@ -335,7 +312,7 @@ const ReportsPage = () => {
                           <div className="p-2 bg-gray-100 rounded-lg">
                             {getReportIcon(report.type)}
                           </div>
-                          
+
                           <div className="space-y-1">
                             <div className="flex items-center gap-3">
                               <h3 className="font-semibold text-gray-900">{report.title}</h3>
@@ -350,15 +327,20 @@ const ReportsPage = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           {report.status === 'completed' && (
                             <>
-                              <Button variant="outline" size="sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePreview(report)}
+                                disabled={previewLoading}
+                              >
                                 <Eye className="w-4 h-4 mr-2" />
-                                Preview
+                                {previewLoading ? 'Loading...' : 'Preview'}
                               </Button>
-                              <Button 
+                              <Button
                                 onClick={() => downloadReport(report)}
                                 size="sm"
                               >
@@ -424,7 +406,7 @@ const ReportsPage = () => {
               ].map((reportType) => {
                 const Icon = reportType.icon;
                 const isGenerating = generating === reportType.type;
-                
+
                 return (
                   <Card key={reportType.type} className={`hover:shadow-md transition-all cursor-pointer border-2 hover:border-${reportType.color}-200`}>
                     <CardContent className="p-6">
@@ -432,13 +414,13 @@ const ReportsPage = () => {
                         <div className={`p-4 bg-${reportType.color}-100 rounded-full w-16 h-16 mx-auto flex items-center justify-center`}>
                           <Icon className={`w-8 h-8 text-${reportType.color}-600`} />
                         </div>
-                        
+
                         <div>
                           <h3 className="font-semibold text-gray-900 mb-2">{reportType.title}</h3>
                           <p className="text-gray-600 text-sm mb-4">{reportType.description}</p>
                         </div>
-                        
-                        <Button 
+
+                        <Button
                           onClick={() => generateReport(reportType.type)}
                           disabled={isGenerating}
                           className="w-full"
@@ -464,6 +446,41 @@ const ReportsPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+      <Modal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        title="Report Preview"
+        size="xl"
+      >
+        <div className="overflow-x-auto">
+          {previewData && (<table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {previewData.columns.map((col: any, idx: number) => (
+                  <th key={idx} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {col.header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {previewData.data.map((row: any, rIdx: number) => (
+                <tr key={rIdx}>
+                  {previewData.columns.map((col: any, cIdx: number) => (
+                    <td key={cIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {typeof row[col.key] === 'object'
+                        ? JSON.stringify(row[col.key])
+                        : String(row[col.key] ?? '-')}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          )}
+          {!previewData && <p>No data</p>}
+        </div>
+      </Modal>
     </DashboardLayout>
   );
 };

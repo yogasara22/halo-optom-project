@@ -37,7 +37,7 @@ class MedicalService {
   // Untuk Optometris
   async getPatientMedicalRecords(patientId: string): Promise<MedicalHistory[]> {
     try {
-      const response = await api.get(`/medical/patients/${patientId}/history`);
+      const response = await api.get(`/medicalRecords/patient/${patientId}`);
       return response.data.data;
     } catch (error) {
       console.error('Get patient medical records error:', error);

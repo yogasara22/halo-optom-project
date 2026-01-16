@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDashboardStats } from '../controllers/analytics.controller';
+import { getDashboardStats, getRevenueAnalytics } from '../controllers/analytics.controller';
 import { authMiddleware, authorize } from '../middlewares/auth.middleware';
 import { UserRole } from '../entities/User';
 
@@ -10,6 +10,13 @@ router.get(
     authMiddleware,
     authorize([UserRole.Admin]),
     getDashboardStats
+);
+
+router.get(
+    '/revenue',
+    authMiddleware,
+    authorize([UserRole.Admin]),
+    getRevenueAnalytics
 );
 
 export default router;

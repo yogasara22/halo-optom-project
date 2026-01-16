@@ -15,18 +15,24 @@ export interface Patient {
 
 export interface Appointment {
   id: string;
-  patientId: string;
-  optometristId: string;
-  date: string; // format: YYYY-MM-DD
-  time: string; // format: HH:MM
-  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
-  serviceType: string;
+  patientId?: string;
+  optometristId?: string;
+  date: string;
+  start_time: string;
+  end_time?: string;
+  status: 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled';
+  payment_status: 'unpaid' | 'paid';
+  type: 'online' | 'homecare';
+  method?: 'chat' | 'video';
+  location?: string;
+  price?: number;
   notes?: string;
   patient?: Patient;
-  optometrist?: {
+  optometrist: {
     id: string;
     name: string;
-    photo?: string;
+    avatar_url?: string;
+    photo?: string; // fallback
   };
 }
 
@@ -87,13 +93,13 @@ class PatientService {
       return response.data;
     } catch (error) {
       try {
-        const confirmed = await this.getAppointments('CONFIRMED');
-        const pending = await this.getAppointments('PENDING');
+        const confirmed = await this.getAppointments('confirmed');
+        const pending = await this.getAppointments('pending');
         const upcoming = [...confirmed, ...pending]
-          .filter(a => a.status !== 'CANCELLED' && a.status !== 'COMPLETED')
+          .filter(a => a.status !== 'cancelled' && a.status !== 'completed')
           .sort((a, b) => {
-            const ad = new Date(`${a.date}T${a.time}`);
-            const bd = new Date(`${b.date}T${b.time}`);
+            const ad = new Date(`${a.date}T${a.start_time}`);
+            const bd = new Date(`${b.date}T${b.start_time}`);
             return ad.getTime() - bd.getTime();
           });
         return upcoming[0] || null;
@@ -121,7 +127,7 @@ class PatientService {
     }
   }
 
-  async getServicePrice(type: 'online'|'homecare', method: 'chat'|'video'): Promise<number | null> {
+  async getServicePrice(type: 'online' | 'homecare', method: 'chat' | 'video'): Promise<number | null> {
     try {
       if (type === 'homecare') return null;
       const res = await api.get('/services/pricing/lookup', { params: { type: 'online', method } });
@@ -163,7 +169,7 @@ class PatientService {
     return response.data.avatar_url;
   }
 
-  async updateMyProfile(data: Partial<{ name: string; phone: string; date_of_birth: string; gender: 'laki-laki'|'perempuan'; address: string; bio?: string; experience?: string; certifications?: string[]; str_number?: string; avatar_url?: string }>): Promise<any> {
+  async updateMyProfile(data: Partial<{ name: string; phone: string; date_of_birth: string; gender: 'laki-laki' | 'perempuan'; address: string; bio?: string; experience?: string; certifications?: string[]; str_number?: string; avatar_url?: string }>): Promise<any> {
     const response = await api.put('/users/profile/update', data);
     return response.data.data || response.data;
   }

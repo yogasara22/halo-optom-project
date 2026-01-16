@@ -208,126 +208,137 @@ export default function ReviewsPage() {
         </div>
 
         {/* Stats Cards */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {/* Total Reviews */}
-          <Card className="overflow-hidden border border-blue-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
+          <Card className="shadow-xs border border-gray-100 hover:shadow-sm transition-all duration-200">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Total Review</p>
-                  {loading ? (
-                    <Skeleton className="h-8 w-16 mt-1" />
-                  ) : (
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalReviews}</p>
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 rounded-lg bg-blue-50">
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                  </div>
+                  {stats.totalReviews > 0 && (
+                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                      +12%
+                    </span>
                   )}
                 </div>
-                <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors duration-200">
-                  <MessageSquare className="w-5 h-5 text-blue-600" />
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Total Review</p>
+                  {loading ? (
+                    <Skeleton className="h-7 w-16" />
+                  ) : (
+                    <p className="text-xl font-bold text-gray-800">{stats.totalReviews}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Pending Reviews */}
-          <Card className="overflow-hidden border border-amber-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
+          <Card className="shadow-xs border border-gray-100 hover:shadow-sm transition-all duration-200">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Pending</p>
-                  {loading ? (
-                    <Skeleton className="h-8 w-16 mt-1" />
-                  ) : (
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.pendingReviews}</p>
-                  )}
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 rounded-lg bg-amber-50">
+                    <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  </div>
                 </div>
-                <div className="p-2 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors duration-200">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Pending</p>
+                  {loading ? (
+                    <Skeleton className="h-7 w-16" />
+                  ) : (
+                    <p className="text-xl font-bold text-gray-800">{stats.pendingReviews}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Approved Reviews */}
-          <Card className="overflow-hidden border border-green-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
+          <Card className="shadow-xs border border-gray-100 hover:shadow-sm transition-all duration-200">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Approved</p>
-                  {loading ? (
-                    <Skeleton className="h-8 w-16 mt-1" />
-                  ) : (
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.approvedReviews}</p>
-                  )}
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 rounded-lg bg-emerald-50">
+                    <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  </div>
                 </div>
-                <div className="p-2 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors duration-200">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Approved</p>
+                  {loading ? (
+                    <Skeleton className="h-7 w-16" />
+                  ) : (
+                    <p className="text-xl font-bold text-gray-800">{stats.approvedReviews}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Rejected Reviews */}
-          <Card className="overflow-hidden border border-rose-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
+          <Card className="shadow-xs border border-gray-100 hover:shadow-sm transition-all duration-200">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Rejected</p>
-                  {loading ? (
-                    <Skeleton className="h-8 w-16 mt-1" />
-                  ) : (
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.rejectedReviews}</p>
-                  )}
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 rounded-lg bg-rose-50">
+                    <XCircle className="w-5 h-5 text-rose-600" />
+                  </div>
                 </div>
-                <div className="p-2 rounded-lg bg-rose-50 group-hover:bg-rose-100 transition-colors duration-200">
-                  <XCircle className="w-5 h-5 text-rose-600" />
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Rejected</p>
+                  {loading ? (
+                    <Skeleton className="h-7 w-16" />
+                  ) : (
+                    <p className="text-xl font-bold text-gray-800">{stats.rejectedReviews}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Average Rating */}
-          <Card className="overflow-hidden border border-amber-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group col-span-1 md:col-span-2 lg:col-span-1">
+          <Card className="shadow-xs border border-gray-100 hover:shadow-sm transition-all duration-200">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="w-full">
-                  <p className="text-sm font-medium text-gray-500">Rata-rata</p>
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 rounded-lg bg-yellow-50">
+                    <Star className="w-5 h-5 text-yellow-600" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Rata-rata Rating</p>
                   {loading ? (
-                    <Skeleton className="h-8 w-16 mt-1" />
+                    <Skeleton className="h-7 w-16" />
                   ) : (
-                    <div className="flex flex-col mt-1">
-                      <span className="text-2xl font-bold text-gray-900">{stats.averageRating.toFixed(1)}</span>
-                      <div className="flex items-center mt-1 space-x-0.5">
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-3 h-3 ${i < Math.floor(stats.averageRating) ? 'text-amber-500 fill-current' : 'text-gray-200'}`}
-                          />
-                        ))}
-                      </div>
+                    <div className="flex items-baseline gap-1">
+                      <p className="text-xl font-bold text-gray-800">{stats.averageRating.toFixed(1)}</p>
+                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
                     </div>
                   )}
-                </div>
-                <div className="p-2 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors duration-200 shrink-0 ml-2">
-                  <Star className="w-5 h-5 text-amber-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Reported Reviews */}
-          <Card className="overflow-hidden border border-purple-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white group">
+          <Card className="shadow-xs border border-gray-100 hover:shadow-sm transition-all duration-200">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Reported</p>
-                  {loading ? (
-                    <Skeleton className="h-8 w-16 mt-1" />
-                  ) : (
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.reportedReviews}</p>
-                  )}
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 rounded-lg bg-purple-50">
+                    <AlertTriangle className="w-5 h-5 text-purple-600" />
+                  </div>
                 </div>
-                <div className="p-2 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors duration-200">
-                  <AlertTriangle className="w-5 h-5 text-purple-600" />
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Reported</p>
+                  {loading ? (
+                    <Skeleton className="h-7 w-16" />
+                  ) : (
+                    <p className="text-xl font-bold text-gray-800">{stats.reportedReviews}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -336,113 +347,111 @@ export default function ReviewsPage() {
 
         {/* Filters */}
         <Card className="border-none shadow-md overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-2">
+          <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 pb-2">
             <div className="flex items-center gap-2">
               <Filter className="w-5 h-5 text-blue-600" />
               <CardTitle className="text-blue-800 text-lg">Filter Review</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6 bg-white">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cari Review</label>
-                <div className="relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+              <div className="lg:col-span-4 relative">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Cari Review</label>
+                <div className="relative group">
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Nama pasien, optometris, atau komentar..."
-                    className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    className="w-full h-10 px-3 pl-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all duration-200 shadow-sm group-hover:border-blue-200"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <div className="relative">
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Status</label>
+                <div className="relative group">
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none transition-all duration-200"
+                    className="w-full h-10 px-3 pl-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 appearance-none transition-all duration-200 shadow-sm cursor-pointer hover:border-blue-200"
                   >
-                    <option value="all">Semua Status</option>
+                    <option value="all">Semua</option>
                     <option value="pending">Pending</option>
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
                   </select>
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <div className="h-5 w-5 text-gray-400">
-                      {statusFilter === 'pending' && <AlertTriangle className="h-5 w-5 text-amber-500" />}
-                      {statusFilter === 'approved' && <CheckCircle className="h-5 w-5 text-green-500" />}
-                      {statusFilter === 'rejected' && <XCircle className="h-5 w-5 text-red-500" />}
-                      {statusFilter === 'all' && <div className="h-5 w-5 text-gray-400 flex items-center justify-center">•••</div>}
-                    </div>
+                    {statusFilter === 'pending' ? <AlertTriangle className="h-4 w-4 text-amber-500" /> :
+                      statusFilter === 'approved' ? <CheckCircle className="h-4 w-4 text-green-500" /> :
+                        statusFilter === 'rejected' ? <XCircle className="h-4 w-4 text-red-500" /> :
+                          <div className="h-4 w-4 text-gray-400 flex items-center justify-center font-bold text-xs">•••</div>}
                   </div>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                     </svg>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Layanan</label>
-                <div className="relative">
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Layanan</label>
+                <div className="relative group">
                   <select
                     value={serviceFilter}
                     onChange={(e) => setServiceFilter(e.target.value)}
-                    className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none transition-all duration-200"
+                    className="w-full h-10 px-3 pl-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 appearance-none transition-all duration-200 shadow-sm cursor-pointer hover:border-blue-200"
                   >
-                    <option value="all">Semua Layanan</option>
+                    <option value="all">Semua</option>
                     <option value="consultation">Konsultasi</option>
                     <option value="homecare">Homecare</option>
                     <option value="product">Produk</option>
                   </select>
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                   </div>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                     </svg>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
-                <div className="relative">
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Rating</label>
+                <div className="relative group">
                   <select
                     value={ratingFilter}
                     onChange={(e) => setRatingFilter(e.target.value)}
-                    className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none transition-all duration-200"
+                    className="w-full h-10 px-3 pl-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 appearance-none transition-all duration-200 shadow-sm cursor-pointer hover:border-blue-200"
                   >
-                    <option value="all">Semua Rating</option>
+                    <option value="all">Semua</option>
                     <option value="5">5 Bintang</option>
                     <option value="4">4 Bintang</option>
                     <option value="3">3 Bintang</option>
                     <option value="1-2">1-2 Bintang</option>
                   </select>
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Star className="h-5 w-5 text-yellow-500" />
+                    <Star className="h-4 w-4 text-yellow-500" />
                   </div>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                     </svg>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-end">
+              <div className="lg:col-span-2">
                 <Button
                   onClick={() => {
                     setSearchTerm('');
@@ -452,9 +461,10 @@ export default function ReviewsPage() {
                     setCurrentPage(1);
                   }}
                   variant="outline"
-                  className="w-full border-blue-300 text-blue-600 hover:bg-blue-50 transition-all duration-200"
+                  className="w-full h-10 border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all duration-200 shadow-sm"
                 >
-                  Reset Filter
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Reset
                 </Button>
               </div>
             </div>
@@ -463,7 +473,7 @@ export default function ReviewsPage() {
 
         {/* Reviews Table */}
         <Card className="border-none shadow-md overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-2">
+          <CardHeader className="bg-linear-to-r from-blue-50 to-indigo-50 pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-blue-600" />
@@ -654,7 +664,7 @@ export default function ReviewsPage() {
         {showModal && selectedReview && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
             <div className="bg-white rounded-lg shadow-xl p-0 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 flex justify-between items-center">
+              <div className="bg-linear-to-r from-blue-50 to-indigo-50 px-6 py-4 flex justify-between items-center">
                 <h2 className="text-xl font-bold text-blue-800">Detail Review</h2>
                 <Button
                   variant="ghost"
@@ -668,7 +678,7 @@ export default function ReviewsPage() {
               <div className="p-6 space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                   <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 flex items-center justify-center text-blue-600 font-medium text-xl">
+                    <div className="shrink-0 h-12 w-12 rounded-full bg-linear-to-r from-blue-100 to-indigo-100 flex items-center justify-center text-blue-600 font-medium text-xl">
                       {selectedReview.patientName?.charAt(0) || '?'}
                     </div>
                     <div>
@@ -733,7 +743,7 @@ export default function ReviewsPage() {
                     {selectedReview.isReported && (
                       <div className="bg-red-50 p-4 rounded-lg border border-red-100">
                         <div className="flex">
-                          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                          <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
                           <div className="ml-3">
                             <h3 className="text-sm font-medium text-red-800">Review Dilaporkan</h3>
                             <div className="mt-2 text-sm text-red-700">

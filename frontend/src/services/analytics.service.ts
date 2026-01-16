@@ -39,6 +39,7 @@ export interface RevenueAnalytics {
     totalRevenue: number;
     totalTransactions: number;
     averageTransaction: number;
+    growthRate: number;
   };
 }
 
@@ -141,18 +142,50 @@ class AnalyticsService {
   // Dashboard Analytics
   async getDashboardAnalytics(period: string = '30'): Promise<DashboardAnalytics> {
     try {
-      const response = await api.get(`/analytics/dashboard?period=${period}`);
-      return response.data;
+      const response = await api.get('/analytics/stats');
+      const data = response.data;
+
+      return {
+        overview: {
+          totalUsers: Number(data.totalUsers) || 0,
+          totalOrders: Number(data.totalOrders) || 0,
+          totalAppointments: Number(data.activeAppointments) || 0,
+          totalRevenue: Number(data.totalRevenue) || 0,
+          totalReviews: 0
+        },
+        growth: {
+          // Backend currently doesn't provide historical data for these counters in /stats
+          // Setting to 0 to reflect real data state rather than random mock
+          users: { current: Number(data.totalUsers), previous: 0, percentage: 0 },
+          orders: { current: Number(data.totalOrders), previous: 0, percentage: 0 },
+          appointments: { current: Number(data.activeAppointments), previous: 0, percentage: 0 },
+
+          // Revenue growth will be handled by the revenue analytics endpoint
+          revenue: { current: Number(data.totalRevenue), previous: 0, percentage: 0 }
+        }
+      };
     } catch (error) {
       console.error('Error fetching dashboard analytics:', error);
-      throw error;
+      // Fallback to initial structure with 0s if error
+      return {
+        overview: { totalUsers: 0, totalOrders: 0, totalAppointments: 0, totalRevenue: 0, totalReviews: 0 },
+        growth: {
+          users: { current: 0, previous: 0, percentage: 0 },
+          orders: { current: 0, previous: 0, percentage: 0 },
+          appointments: { current: 0, previous: 0, percentage: 0 },
+          revenue: { current: 0, previous: 0, percentage: 0 }
+        }
+      };
     }
   }
 
   // Revenue Analytics
   async getRevenueAnalytics(period: string = '30', type: string = 'daily'): Promise<RevenueAnalytics> {
     try {
-      const response = await api.get(`/analytics/revenue?period=${period}&type=${type}`);
+      // Backend expects 'period' as days count (e.g., '30')
+      const response = await api.get(`/analytics/revenue`, {
+        params: { period, type }
+      });
       return response.data;
     } catch (error) {
       console.error('Error fetching revenue analytics:', error);
@@ -240,6 +273,16 @@ class AnalyticsService {
     }
   }
 
+  async getReportPreview(reportId: string): Promise<{ columns: any[], data: any[] }> {
+    try {
+      const response = await api.get(`/reports/preview/${reportId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error previewing report:', error);
+      throw error;
+    }
+  }
+
   async exportReport(type: string, format: string = 'csv', period: string = '30'): Promise<ExportReportResponse | Blob> {
     try {
       const params = new URLSearchParams({
@@ -304,7 +347,7 @@ class AnalyticsService {
   getDateRange(period: string): { startDate: Date; endDate: Date } {
     const endDate = new Date();
     const startDate = new Date();
-    
+
     switch (period) {
       case '7':
         startDate.setDate(startDate.getDate() - 7);
@@ -321,101 +364,8 @@ class AnalyticsService {
       default:
         startDate.setDate(startDate.getDate() - 30);
     }
-    
+
     return { startDate, endDate };
-  }
-
-  // Mock data generators for development
-  generateMockDashboardAnalytics(): DashboardAnalytics {
-    // Menghasilkan data dinamis setiap kali dipanggil
-    const totalUsers = Math.floor(Math.random() * 500) + 1000;
-    const totalOrders = Math.floor(Math.random() * 300) + 700;
-    const totalAppointments = Math.floor(Math.random() * 200) + 300;
-    const totalRevenue = Math.floor(Math.random() * 50000000) + 100000000;
-    const totalReviews = Math.floor(Math.random() * 100) + 150;
-    
-    const usersCurrent = Math.floor(Math.random() * 20) + 30;
-    const usersPrevious = Math.floor(Math.random() * 20) + 25;
-    const usersPercentage = parseFloat(((usersCurrent - usersPrevious) / usersPrevious * 100).toFixed(1));
-    
-    const ordersCurrent = Math.floor(Math.random() * 50) + 100;
-    const ordersPrevious = Math.floor(Math.random() * 40) + 80;
-    const ordersPercentage = parseFloat(((ordersCurrent - ordersPrevious) / ordersPrevious * 100).toFixed(1));
-    
-    const appointmentsCurrent = Math.floor(Math.random() * 30) + 50;
-    const appointmentsPrevious = Math.floor(Math.random() * 30) + 50;
-    const appointmentsPercentage = parseFloat(((appointmentsCurrent - appointmentsPrevious) / appointmentsPrevious * 100).toFixed(1));
-    
-    const revenueCurrent = Math.floor(Math.random() * 5000000) + 12000000;
-    const revenuePrevious = Math.floor(Math.random() * 4000000) + 10000000;
-    const revenuePercentage = parseFloat(((revenueCurrent - revenuePrevious) / revenuePrevious * 100).toFixed(1));
-    
-    return {
-      overview: {
-        totalUsers,
-        totalOrders,
-        totalAppointments,
-        totalRevenue,
-        totalReviews
-      },
-      growth: {
-        users: { current: usersCurrent, previous: usersPrevious, percentage: usersPercentage },
-        orders: { current: ordersCurrent, previous: ordersPrevious, percentage: ordersPercentage },
-        appointments: { current: appointmentsCurrent, previous: appointmentsPrevious, percentage: appointmentsPercentage },
-        revenue: { current: revenueCurrent, previous: revenuePrevious, percentage: revenuePercentage }
-      }
-    };
-  }
-
-  generateMockRevenueAnalytics(): RevenueAnalytics {
-    const timeline: RevenueTimelineItem[] = [];
-    const today = new Date();
-    
-    // Menghasilkan data timeline yang dinamis
-    let totalRevenue = 0;
-    let totalTransactions = 0;
-    
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      const dailyRevenue = Math.floor(Math.random() * 5000000) + 1000000;
-      const dailyTransactions = Math.floor(Math.random() * 50) + 10;
-      
-      totalRevenue += dailyRevenue;
-      totalTransactions += dailyTransactions;
-      
-      timeline.push({
-        period: date.toISOString().split('T')[0],
-        revenue: dailyRevenue,
-        transactions: dailyTransactions
-      });
-    }
-    
-    // Menghasilkan data sumber pendapatan yang dinamis
-    const appointmentsRevenue = Math.floor(Math.random() * 30000000) + 30000000;
-    const appointmentsTransactions = Math.floor(Math.random() * 100) + 100;
-    
-    const ordersRevenue = Math.floor(Math.random() * 50000000) + 50000000;
-    const ordersTransactions = Math.floor(Math.random() * 200) + 200;
-    
-    // Menghitung rata-rata transaksi
-    const totalSourceTransactions = appointmentsTransactions + ordersTransactions;
-    const totalSourceRevenue = appointmentsRevenue + ordersRevenue;
-    const averageTransaction = Math.floor(totalSourceRevenue / totalSourceTransactions);
-    
-    return {
-      timeline,
-      bySource: [
-        { source: 'appointments', revenue: appointmentsRevenue, transactions: appointmentsTransactions },
-        { source: 'orders', revenue: ordersRevenue, transactions: ordersTransactions }
-      ],
-      summary: {
-        totalRevenue: totalSourceRevenue,
-        totalTransactions: totalSourceTransactions,
-        averageTransaction
-      }
-    };
   }
 }
 
