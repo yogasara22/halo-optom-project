@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, StyleSheet, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -8,6 +8,7 @@ import { toBoolean } from '../../utils/boolean';
 import { optometristService, Optometrist } from '../../services/optometristService';
 import { patientService } from '../../services/patientService';
 import { API_BASE_URL } from '../../constants/config';
+import InitialAvatar from '../../components/common/InitialAvatar';
 
 export default function BookingScreen() {
     const router = useRouter();
@@ -33,6 +34,11 @@ export default function BookingScreen() {
         (async () => {
             try {
                 const list = await optometristService.getOptometrists();
+                console.log('📋 Fetched optometrists:', list.map(opt => ({
+                    name: opt.name,
+                    photo: opt.photo,
+                    avatar_url: opt.avatar_url,
+                })));
                 setOptometrists(list);
             } catch (e) {
                 setOptometrists([]);
@@ -146,8 +152,12 @@ export default function BookingScreen() {
                 return;
             }
 
-            console.log('🚀 Redirecting to payment screen with ID:', appointmentId);
-            router.push(`/appointments/payment?id=${appointmentId}`);
+            if (type === 'homecare') {
+                router.replace('/appointments/success?type=homecare');
+            } else {
+                console.log('🚀 Redirecting to payment screen with ID:', appointmentId);
+                router.push(`/appointments/payment?id=${appointmentId}`);
+            }
         } catch (e: any) {
             console.error('❌ Booking error:', e);
             setError(e?.response?.data?.message || e?.message || 'Gagal membuat janji');
@@ -183,12 +193,21 @@ export default function BookingScreen() {
                             >
                                 <View style={[styles.avatarRing, active && styles.avatarRingActive]}>
                                     {(() => {
-                                        const base = API_BASE_URL.replace(/\/?api$/, '');
-                                        let url = opt.photo;
-                                        if (url && !/^https?:\/\//i.test(url)) url = base + url;
-                                        if (url && /localhost|127\.0\.0\.1/.test(url)) url = url.replace(/^https?:\/\/[^/]+/, base);
-                                        const src = url ? { uri: url } : require('../../assets/images/avatar.png');
-                                        return <Image source={src} style={{ width: 60, height: 60, borderRadius: 30 }} />;
+                                        const avatarUrl = opt.avatar_url || opt.photo;
+                                        console.log(`👤 Optometrist ${opt.name}:`, {
+                                            avatar_url: opt.avatar_url,
+                                            photo: opt.photo,
+                                            using: avatarUrl,
+                                        });
+                                        return (
+                                            <InitialAvatar
+                                                name={opt.name}
+                                                avatarUrl={avatarUrl}
+                                                size={60}
+                                                role="optometrist"
+                                                style={{ borderRadius: 30 }}
+                                            />
+                                        );
                                     })()}
                                 </View>
                                 <Text style={{ fontSize: 12, marginTop: 6, color: active ? '#16a34a' : '#111827' }}>{opt.name}</Text>

@@ -30,14 +30,25 @@ export class Order {
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   total!: number;
 
-  @Column({ type: 'enum', enum: ['pending','paid','shipped','delivered','cancelled'], default: 'pending' })
+  @Column({ type: 'enum', enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled'], default: 'pending' })
   status!: OrderStatus;
 
   @Column({ type: 'json', nullable: true })
   payment_data?: any;
-  
+
   @OneToOne(() => Payment, payment => payment.order, { nullable: true })
   payment?: Payment;
+
+  @Column({ type: 'json', nullable: true })
+  shipping_address?: {
+    receiver_name: string;
+    phone: string;
+    full_address: string;
+    province: string;
+    city: string;
+    district: string;
+    postal_code: string;
+  };
 
   @CreateDateColumn()
   created_at!: Date;

@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL } from '../../constants/config';
 import { LinearGradient } from 'expo-linear-gradient';
+import InitialAvatar from '../../components/common/InitialAvatar';
 
 const { width } = Dimensions.get('window');
 
@@ -30,14 +30,6 @@ export default function ProfileScreen() {
             ]
         );
     };
-
-    const base = API_BASE_URL.replace(/\/?api$/, '');
-    const avatarSource = (() => {
-        let url = user?.avatar_url;
-        if (url && !/^https?:\/\//i.test(url)) url = base + url;
-        if (url && /localhost|127\.0\.0\.1/.test(url)) url = url.replace(/^https?:\/\/[^/]+/, base);
-        return url ? { uri: url } : require('../../assets/images/avatar.png');
-    })();
 
     const MenuSection = ({ title, items }: { title: string, items: any[] }) => (
         <View style={styles.sectionContainer}>
@@ -97,7 +89,11 @@ export default function ProfileScreen() {
                 <View style={styles.profileCard}>
                     <View style={styles.profileRow}>
                         <View style={styles.avatarContainer}>
-                            <Image source={avatarSource} style={styles.avatar} />
+                            <InitialAvatar
+                                name={user?.name || 'Pengguna'}
+                                avatarUrl={user?.avatar_url}
+                                size={80}
+                            />
                             <View style={styles.verifiedBadge}>
                                 <Ionicons name="checkmark-circle" size={16} color="#fff" />
                             </View>

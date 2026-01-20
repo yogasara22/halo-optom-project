@@ -23,6 +23,9 @@ export interface ConsultationDetails {
     chat?: {
         room_id: string;
     };
+    date: string;
+    start_time: string;
+    end_time?: string;
 }
 
 export interface ChatMessage {
@@ -32,10 +35,12 @@ export interface ChatMessage {
         id: string;
         name: string;
         avatar_url?: string;
+        role?: string;
     };
     to?: {
         id: string;
         name: string;
+        role?: string;
     };
     message: string;
     attachments?: any[];

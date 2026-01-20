@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import InitialAvatar from '../common/InitialAvatar';
 
 const { width } = Dimensions.get('window');
 
@@ -47,7 +48,13 @@ const PatientScheduleCarousel: React.FC<PatientScheduleCarouselProps> = ({
         >
           {/* Foto Pasien */}
           <View style={styles.avatarContainer}>
-            <Image source={item.photo} style={styles.avatar} />
+            <InitialAvatar
+              name={item.name}
+              avatarUrl={item.photo?.uri ? item.photo.uri : item.photo}
+              size={70}
+              style={{ borderRadius: 35 }}
+              role="patient"
+            />
           </View>
 
           {/* Nama & Jenis Layanan */}
@@ -111,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     overflow: 'hidden',
     marginBottom: 10,
-    backgroundColor: '#f1f5f9',
+    // backgroundColor removed to allow InitialAvatar to set its own color
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
     justifyContent: 'center',
@@ -169,6 +176,15 @@ const styles = StyleSheet.create({
   },
   statusTextApproved: {
     color: '#166534',
+  },
+  initialsContainer: {
+    backgroundColor: '#e0f2fe',
+    borderColor: '#bfdbfe',
+  },
+  initialsText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1876B8',
   },
 });
 

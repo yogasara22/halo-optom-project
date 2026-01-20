@@ -9,3 +9,11 @@ export const formatRupiah = (value: number | string): string => {
         maximumFractionDigits: 0,
     }).format(number).replace(/,00$/, '').replace(/\u00A0/g, ' ');
 };
+
+export const getInitials = (name: string): string => {
+    if (!name) return '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+};

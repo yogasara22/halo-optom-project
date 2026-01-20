@@ -1,10 +1,12 @@
 import { Tabs } from 'expo-router';
-import { Home, User, Calendar, MessageSquare, BriefcaseMedical } from 'lucide-react-native';
+import { Home, User, Calendar, MessageSquare, BriefcaseMedical, FileText } from 'lucide-react-native';
 import { useColorScheme, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function OptometristLayout() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+    const insets = useSafeAreaInsets();
 
     return (
         <Tabs
@@ -19,15 +21,15 @@ export default function OptometristLayout() {
                     shadowOpacity: 0.1,
                     shadowRadius: 10,
                     shadowOffset: { width: 0, height: -4 },
-                    paddingBottom: 45,
-                    paddingTop: 12,
-                    height: 105,
+                    paddingBottom: insets.bottom,
+                    paddingTop: 10,
+                    height: 60 + insets.bottom,
                     borderTopLeftRadius: 20,
                     borderTopRightRadius: 20,
                     position: 'absolute',
                 },
                 tabBarLabelStyle: {
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: '600',
                     marginBottom: 5,
                 },
@@ -44,7 +46,7 @@ export default function OptometristLayout() {
             <Tabs.Screen
                 name="schedule"
                 options={{
-                    title: 'Jadwal Saya',
+                    title: 'Jadwal',
                     tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
                 }}
             />
@@ -56,10 +58,10 @@ export default function OptometristLayout() {
                 }}
             />
             <Tabs.Screen
-                name="homecare"
+                name="records"
                 options={{
-                    title: 'Homecare',
-                    tabBarIcon: ({ color, size }) => <BriefcaseMedical size={size} color={color} />,
+                    title: 'Rekam Medis',
+                    tabBarIcon: ({ color, size }) => <FileText size={size} color={color} />,
                 }}
             />
             <Tabs.Screen
@@ -74,6 +76,62 @@ export default function OptometristLayout() {
                 options={{
                     href: null,
                     tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
+                }}
+            />
+            <Tabs.Screen
+                name="medicalRecordForm"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
+                }}
+            />
+            <Tabs.Screen
+                name="patient/[id]"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
+                }}
+            />
+            <Tabs.Screen
+                name="homecare"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
+                }}
+            />
+            <Tabs.Screen
+                name="history"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
+                }}
+            />
+            <Tabs.Screen
+                name="wallet"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
+            <Tabs.Screen
+                name="withdrawForm"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
+            <Tabs.Screen
+                name="withdrawHistory"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
+            <Tabs.Screen
+                name="notifications"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' },
                 }}
             />
         </Tabs>

@@ -1,10 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Home, Calendar, ShoppingBag, User, Clock } from 'lucide-react-native';
 import { useColorScheme } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PatientLayout() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+    const insets = useSafeAreaInsets();
 
     return (
         <Tabs
@@ -19,15 +21,15 @@ export default function PatientLayout() {
                     shadowOpacity: 0.1,
                     shadowRadius: 10,
                     shadowOffset: { width: 0, height: -4 },
-                    paddingBottom: 45,
-                    paddingTop: 12,
-                    height: 105,
+                    paddingBottom: insets.bottom,
+                    paddingTop: 10,
+                    height: 60 + insets.bottom,
                     borderTopLeftRadius: 20,
                     borderTopRightRadius: 20,
                     position: 'absolute',
                 },
                 tabBarLabelStyle: {
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: '600',
                     marginBottom: 5,
                 },
@@ -73,6 +75,7 @@ export default function PatientLayout() {
                 name="cart"
                 options={{
                     href: null,
+                    tabBarStyle: { display: 'none' },
                 }}
             />
 
@@ -96,6 +99,20 @@ export default function PatientLayout() {
                 options={{
                     href: null,
                     tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
+                }}
+            />
+            <Tabs.Screen
+                name="appointment/[id]"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' }, // Hide bottom navigation on this screen
+                }}
+            />
+            <Tabs.Screen
+                name="notifications"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: 'none' },
                 }}
             />
         </Tabs>

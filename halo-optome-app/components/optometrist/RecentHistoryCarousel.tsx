@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import InitialAvatar from '../common/InitialAvatar';
 
 const { width } = Dimensions.get('window');
 
@@ -26,9 +27,10 @@ export interface PatientHistoryItem {
 interface RecentHistoryCarouselProps {
   data: PatientHistoryItem[];
   onCardPress?: (item: PatientHistoryItem) => void;
+  onDetailPress?: (item: PatientHistoryItem) => void;
 }
 
-const RecentHistoryCarousel: React.FC<RecentHistoryCarouselProps> = ({ data, onCardPress }) => {
+const RecentHistoryCarousel: React.FC<RecentHistoryCarouselProps> = ({ data, onCardPress, onDetailPress }) => {
   return (
     <View style={styles.wrapper}>
       <FlatList
@@ -45,7 +47,13 @@ const RecentHistoryCarousel: React.FC<RecentHistoryCarouselProps> = ({ data, onC
           >
             {/* Header pasien */}
             <View style={styles.headerRow}>
-              <Image source={item.photo} style={styles.avatar} />
+              <InitialAvatar
+                name={item.name}
+                avatarUrl={item.photo}
+                size={48}
+                style={styles.avatar}
+                role="patient"
+              />
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{item.name}</Text>
                 <Text style={styles.serviceType}>{item.serviceType}</Text>
@@ -53,7 +61,7 @@ const RecentHistoryCarousel: React.FC<RecentHistoryCarouselProps> = ({ data, onC
               <Ionicons name="chevron-forward" size={18} color="#1876B8" />
             </View>
 
-            {/* Detail waktu & diagnosis */}
+            {/* Detail waktu & layanan */}
             <View style={styles.detailRow}>
               <Ionicons name="calendar-outline" size={14} color="#64748b" />
               <Text style={styles.detailText}>{item.appointmentDate}</Text>
@@ -62,22 +70,24 @@ const RecentHistoryCarousel: React.FC<RecentHistoryCarouselProps> = ({ data, onC
               <Ionicons name="time-outline" size={14} color="#64748b" />
               <Text style={styles.detailText}>{item.appointmentTime}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Ionicons name="medkit-outline" size={14} color="#64748b" />
-              <Text style={styles.detailText} numberOfLines={2}>
-                Diagnosis: {item.diagnosis}
-              </Text>
+
+            {/* Layanan Status Badge */}
+            <View style={styles.layananRow}>
+              <Text style={styles.layananLabel}>Layanan:</Text>
+              <View style={styles.statusBadge}>
+                <Ionicons name="checkmark-circle" size={14} color="#fff" />
+                <Text style={styles.statusBadgeText}>Konsultasi Selesai</Text>
+              </View>
             </View>
 
-            {/* Tombol aksi */}
+            {/* Tombol aksi - hanya Detail */}
             <View style={styles.actions}>
-              <TouchableOpacity style={styles.btnAction}>
+              <TouchableOpacity
+                style={styles.btnActionFull}
+                onPress={() => onDetailPress?.(item)}
+              >
                 <Ionicons name="document-text-outline" size={16} color="#fff" />
-                <Text style={styles.btnText}>Detail</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.btnActionSecondary}>
-                <Ionicons name="chatbubbles-outline" size={16} color="#1876B8" />
-                <Text style={styles.btnTextSecondary}>Chat</Text>
+                <Text style={styles.btnText}>Lihat Detail</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -89,7 +99,7 @@ const RecentHistoryCarousel: React.FC<RecentHistoryCarouselProps> = ({ data, onC
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 40,
+    marginBottom: 24,
   },
   listContent: {
     paddingHorizontal: 20,
@@ -119,7 +129,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     marginRight: 10,
-    backgroundColor: '#f1f5f9',
+    // backgroundColor removed to allow InitialAvatar to set its own color
   },
   name: {
     fontSize: 16,
@@ -144,7 +154,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginTop: 12,
   },
   btnAction: {
@@ -158,9 +168,20 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  btnActionFull: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1876B8',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+    flex: 1,
+  },
   btnText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   btnActionSecondary: {
@@ -177,6 +198,41 @@ const styles = StyleSheet.create({
     color: '#1876B8',
     fontSize: 13,
     fontWeight: '600',
+  },
+  layananRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 8,
+  },
+  layananLabel: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#22c55e',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    gap: 4,
+  },
+  statusBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  initialsContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#e0f2fe',
+  },
+  initialsText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1876B8',
   },
 });
 

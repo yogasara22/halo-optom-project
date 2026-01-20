@@ -34,6 +34,9 @@ export interface Appointment {
     avatar_url?: string;
     photo?: string; // fallback
   };
+  chat?: {
+    room_id: string;
+  };
 }
 
 export interface MedicalRecord {

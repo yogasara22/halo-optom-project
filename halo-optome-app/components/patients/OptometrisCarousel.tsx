@@ -8,6 +8,7 @@ import {
   Dimensions,
   TouchableOpacity,
 } from 'react-native';
+import InitialAvatar from '../common/InitialAvatar';
 
 const { width } = Dimensions.get('window');
 
@@ -15,6 +16,7 @@ export interface Optometris {
   id: string;
   name: string;
   photo: any;
+  avatar_url?: string;
   rating: number;
   experience: string;
   schedule: string;
@@ -40,7 +42,13 @@ const OptometrisCarousel: React.FC<OptometrisCarouselProps> = ({ data, onCardPre
           activeOpacity={0.9}
         >
           <View style={styles.avatarContainer}>
-            <Image source={item.photo} style={styles.avatar} />
+            <InitialAvatar
+              name={item.name}
+              avatarUrl={item.avatar_url || item.photo}
+              size={80}
+              style={styles.avatar}
+              role="optometrist"
+            />
           </View>
 
           <Text style={styles.name}>{item.name}</Text>

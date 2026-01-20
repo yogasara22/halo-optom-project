@@ -1,29 +1,57 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCart } from '../../context/CartContext';
 import { formatRupiah } from '../../utils/format';
 import { toBoolean } from '../../utils/boolean';
+import api from '../../lib/api';
 
 export default function CartScreen() {
     const router = useRouter();
     const { cart, addToCart, decreaseQuantity, removeFromCart, clearCart } = useCart();
     const [isCheckingOut, setCheckingOut] = useState(false);
 
+    // Shipping Address State
+    const [shippingAddress, setShippingAddress] = useState({
+        receiver_name: '',
+        phone: '',
+        full_address: '',
+        province: '',
+        city: '',
+        district: '',
+        postal_code: '',
+    });
+
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const total = subtotal;
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (cart.length === 0) return;
+
+        // Validation
+        if (!shippingAddress.receiver_name || !shippingAddress.phone || !shippingAddress.full_address || !shippingAddress.city) {
+            Alert.alert('Mohon Lengkapi Data', 'Silakan lengkapi data penerima dan alamat pengiriman.');
+            return;
+        }
+
         setCheckingOut(true);
-        // Simulate API call
-        setTimeout(() => {
-            setCheckingOut(false);
+        try {
+            const payload = {
+                items: cart.map(item => ({
+                    product_id: item.id,
+                    quantity: item.quantity
+                })),
+                payment_data: {}, // Placeholder for payment integration
+                shipping_address: shippingAddress
+            };
+
+            await api.post('/orders', payload);
+
             Alert.alert(
                 'Checkout Berhasil',
-                'Terima kasih telah berbelanja! Pesanan Anda sedang diproses.',
+                'Pesanan Anda telah dibuat dan akan segera diproses.',
                 [{
                     text: 'OK', onPress: () => {
                         clearCart();
@@ -31,7 +59,12 @@ export default function CartScreen() {
                     }
                 }]
             );
-        }, 1500);
+        } catch (error) {
+            console.error('Checkout failed:', error);
+            Alert.alert('Checkout Gagal', 'Terjadi kesalahan saat memproses pesanan Anda. Silakan coba lagi.');
+        } finally {
+            setCheckingOut(false);
+        }
     };
 
     if (cart.length === 0) {
@@ -73,6 +106,7 @@ export default function CartScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                {/* Cart Items */}
                 {cart.map(item => (
                     <View key={item.id} style={styles.cartItem}>
                         <Image source={item.imageUrl ? { uri: item.imageUrl } : require('../../assets/images/logo.png')} style={styles.itemImage} resizeMode="contain" />
@@ -95,6 +129,85 @@ export default function CartScreen() {
                     </View>
                 ))}
 
+                {/* Shipping Address Form */}
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionTitle}>Alamat Pengiriman</Text>
+                    <View style={styles.formContainer}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Nama Penerima</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Nama Lengkap"
+                                value={shippingAddress.receiver_name}
+                                onChangeText={(text) => setShippingAddress({ ...shippingAddress, receiver_name: text })}
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Nomor Telepon</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="08xxx"
+                                keyboardType="phone-pad"
+                                value={shippingAddress.phone}
+                                onChangeText={(text) => setShippingAddress({ ...shippingAddress, phone: text })}
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Alamat Lengkap</Text>
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Jl. Contoh No. 123, RT/RW..."
+                                multiline
+                                numberOfLines={3}
+                                value={shippingAddress.full_address}
+                                onChangeText={(text) => setShippingAddress({ ...shippingAddress, full_address: text })}
+                            />
+                        </View>
+                        <View style={styles.row}>
+                            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                                <Text style={styles.label}>Provinsi</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Provinsi"
+                                    value={shippingAddress.province}
+                                    onChangeText={(text) => setShippingAddress({ ...shippingAddress, province: text })}
+                                />
+                            </View>
+                            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                                <Text style={styles.label}>Kota/Kabupaten</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Kota"
+                                    value={shippingAddress.city}
+                                    onChangeText={(text) => setShippingAddress({ ...shippingAddress, city: text })}
+                                />
+                            </View>
+                        </View>
+                        <View style={styles.row}>
+                            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                                <Text style={styles.label}>Kecamatan</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Kecamatan"
+                                    value={shippingAddress.district}
+                                    onChangeText={(text) => setShippingAddress({ ...shippingAddress, district: text })}
+                                />
+                            </View>
+                            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                                <Text style={styles.label}>Kode Pos</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Kode Pos"
+                                    keyboardType="numeric"
+                                    value={shippingAddress.postal_code}
+                                    onChangeText={(text) => setShippingAddress({ ...shippingAddress, postal_code: text })}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Summary */}
                 <View style={styles.summaryCard}>
                     <View style={styles.summaryRow}>
                         <Text style={styles.summaryLabel}>Subtotal</Text>
@@ -112,11 +225,17 @@ export default function CartScreen() {
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={[styles.checkoutBtn, isCheckingOut && styles.checkoutBtnDisabled]}
-                    disabled={toBoolean(isCheckingOut)}
+                    disabled={isCheckingOut}
                     onPress={handleCheckout}
                 >
-                    <Text style={styles.checkoutText}>{isCheckingOut ? 'Memproses...' : 'Checkout Sekarang'}</Text>
-                    {!isCheckingOut && <Ionicons name="arrow-forward" size={20} color="#fff" />}
+                    {isCheckingOut ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <>
+                            <Text style={styles.checkoutText}>Checkout Sekarang</Text>
+                            <Ionicons name="arrow-forward" size={20} color="#fff" />
+                        </>
+                    )}
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -199,6 +318,35 @@ const styles = StyleSheet.create({
     },
     qtyText: { fontSize: 14, fontWeight: '600', color: '#0f172a', minWidth: 20, textAlign: 'center' },
     removeBtn: { padding: 8 },
+    sectionContainer: {
+        marginTop: 8,
+        marginBottom: 16,
+    },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#0f172a', marginBottom: 12 },
+    formContainer: {
+        backgroundColor: '#fff',
+        padding: 16,
+        borderRadius: 20,
+        shadowColor: '#000',
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 1,
+    },
+    inputGroup: { marginBottom: 16 },
+    label: { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 6 },
+    input: {
+        borderWidth: 1,
+        borderColor: '#cbd5e1',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 14,
+        color: '#0f172a',
+        backgroundColor: '#f8fafc',
+    },
+    textArea: { height: 80, textAlignVertical: 'top' },
+    row: { flexDirection: 'row' },
     summaryCard: {
         backgroundColor: '#fff',
         padding: 20,
@@ -217,7 +365,7 @@ const styles = StyleSheet.create({
     totalValue: { fontSize: 18, fontWeight: 'bold', color: '#1876B8' },
     footer: {
         padding: 20,
-        backgroundColor: '#white',
+        backgroundColor: '#fff',
         borderTopWidth: 1,
         borderTopColor: '#f1f5f9',
     },

@@ -11,23 +11,23 @@ import { Readable } from 'stream';
 export const getMedicalRecordStats = async (_: Request, res: Response) => {
   try {
     const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
-    
+
     // Mendapatkan total rekam medis
     const totalRecords = await medicalRecordRepo.count({
       where: { is_deleted: false }
     });
-    
+
     // Mendapatkan rekam medis yang dibuat dalam 30 hari terakhir
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const recentRecords = await medicalRecordRepo.count({
       where: {
         is_deleted: false,
         created_at: MoreThan(thirtyDaysAgo)
       }
     });
-    
+
     // Mendapatkan jumlah pasien aktif (pasien yang memiliki rekam medis)
     const activePatients = await medicalRecordRepo
       .createQueryBuilder('record')
@@ -35,19 +35,19 @@ export const getMedicalRecordStats = async (_: Request, res: Response) => {
       .where('record.is_deleted = :isDeleted', { isDeleted: false })
       .distinct(true)
       .getCount();
-    
+
     // Mendapatkan jumlah rekam medis per bulan (untuk bulan ini)
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    
+
     const monthlyRecords = await medicalRecordRepo.count({
       where: {
         is_deleted: false,
         created_at: MoreThan(startOfMonth)
       }
     });
-    
+
     return res.json({
       totalRecords,
       recentRecords,
@@ -74,12 +74,12 @@ export const getAllMedicalRecords = async (req: Request, res: Response) => {
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
-    
+
     // Buat query filter
     const whereClause: any = {
       is_deleted: false // Hanya tampilkan yang belum dihapus
     };
-    
+
     // Filter berdasarkan tanggal
     if (startDate && endDate) {
       whereClause.created_at = Between(
@@ -87,27 +87,27 @@ export const getAllMedicalRecords = async (req: Request, res: Response) => {
         new Date(endDate as string)
       );
     }
-    
+
     // Filter berdasarkan optometris
     if (optometristId) {
       whereClause.optometrist = { id: optometristId as string };
     }
-    
+
     // Filter berdasarkan pasien
     if (patientId) {
       whereClause.patient = { id: patientId as string };
     }
-    
+
     // Filter berdasarkan pencarian (diagnosis atau notes)
     if (search) {
       whereClause.diagnosis = Like(`%${search}%`);
     }
 
     const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
-    
+
     // Hitung total records untuk pagination
     const total = await medicalRecordRepo.count({ where: whereClause });
-    
+
     // Ambil data dengan pagination
     const records = await medicalRecordRepo.find({
       where: whereClause,
@@ -147,7 +147,7 @@ export const downloadMedicalRecordsReport = async (req: Request, res: Response) 
     const whereClause: any = {
       is_deleted: false // Hanya tampilkan yang belum dihapus
     };
-    
+
     // Filter berdasarkan tanggal
     if (startDate && endDate) {
       whereClause.created_at = Between(
@@ -155,19 +155,19 @@ export const downloadMedicalRecordsReport = async (req: Request, res: Response) 
         new Date(endDate as string)
       );
     }
-    
+
     // Filter berdasarkan optometris
     if (optometristId) {
       whereClause.optometrist = { id: optometristId as string };
     }
-    
+
     // Filter berdasarkan pasien
     if (patientId) {
       whereClause.patient = { id: patientId as string };
     }
 
     const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
-    
+
     // Ambil semua data yang sesuai filter
     const records = await medicalRecordRepo.find({
       where: whereClause,
@@ -211,7 +211,7 @@ export const downloadPatientMedicalRecordsReport = async (req: Request, res: Res
       patient: { id: patient_id },
       is_deleted: false // Hanya tampilkan yang belum dihapus
     };
-    
+
     // Filter berdasarkan tanggal
     if (startDate && endDate) {
       whereClause.created_at = Between(
@@ -221,7 +221,7 @@ export const downloadPatientMedicalRecordsReport = async (req: Request, res: Res
     }
 
     const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
-    
+
     // Ambil semua data yang sesuai filter
     const records = await medicalRecordRepo.find({
       where: whereClause,
@@ -242,6 +242,175 @@ export const downloadPatientMedicalRecordsReport = async (req: Request, res: Res
     }
   } catch (err) {
     console.error('downloadPatientMedicalRecordsReport error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Fungsi untuk mendapatkan rekam medis berdasarkan ID
+export const getMedicalRecordById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
+    const record = await medicalRecordRepo.findOne({
+      where: { id, is_deleted: false },
+      relations: ['patient', 'optometrist', 'appointment']
+    });
+
+    if (!record) {
+      return res.status(404).json({ message: 'Catatan medis tidak ditemukan' });
+    }
+
+    return res.json(record);
+  } catch (err) {
+    console.error('getMedicalRecordById error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Fungsi untuk export rekam medis individual ke Excel atau PDF
+export const exportMedicalRecord = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { format = 'pdf' } = req.query;
+
+    const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
+    const record = await medicalRecordRepo.findOne({
+      where: { id, is_deleted: false },
+      relations: ['patient', 'optometrist', 'appointment']
+    });
+
+    if (!record) {
+      return res.status(404).json({ message: 'Catatan medis tidak ditemukan' });
+    }
+
+    // Generate report based on format
+    if (format === 'excel') {
+      // Generate Excel report for single record
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Medical Record');
+
+      // Set header
+      worksheet.columns = [
+        { header: 'ID', key: 'id', width: 36 },
+        { header: 'Tanggal', key: 'date', width: 15 },
+        { header: 'Pasien', key: 'patient', width: 20 },
+        { header: 'Optometris', key: 'optometrist', width: 20 },
+        { header: 'Diagnosis', key: 'diagnosis', width: 30 },
+        { header: 'Resep', key: 'prescription', width: 30 },
+        { header: 'Catatan', key: 'notes', width: 30 }
+      ];
+
+      // Add data
+      worksheet.addRow({
+        id: record.id,
+        date: record.created_at.toLocaleDateString('id-ID'),
+        patient: record.patient.name,
+        optometrist: record.optometrist.name,
+        diagnosis: record.diagnosis || '-',
+        prescription: record.prescription || '-',
+        notes: record.notes || '-'
+      });
+
+      // Style header row
+      worksheet.getRow(1).font = { bold: true };
+
+      // Set filename
+      const filename = `medical_record_${record.patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+
+      // Write to response
+      await workbook.xlsx.write(res);
+      res.end();
+    } else {
+      // Generate PDF report for single record
+      const doc = new PDFDocument();
+
+      const filename = `medical_record_${record.patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+
+      // Pipe the PDF to the response
+      doc.pipe(res);
+
+      // Add title
+      doc.fontSize(18).text('Rekam Medis Pasien', { align: 'center' });
+      doc.moveDown();
+
+      // Add header line
+      doc.strokeColor('#333333').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+      doc.moveDown();
+
+      // Add patient info section
+      doc.fontSize(14).text('Informasi Pasien', { underline: true });
+      doc.moveDown(0.5);
+      doc.fontSize(11).text(`Nama: ${record.patient.name}`);
+      doc.fontSize(11).text(`Email: ${record.patient.email || '-'}`);
+      doc.fontSize(11).text(`Telepon: ${record.patient.phone || '-'}`);
+      doc.moveDown();
+
+      // Add optometrist info
+      doc.fontSize(14).text('Optometris', { underline: true });
+      doc.moveDown(0.5);
+      doc.fontSize(11).text(`Nama: ${record.optometrist.name}`);
+      doc.moveDown();
+
+      // Add appointment date
+      doc.fontSize(14).text('Tanggal Pemeriksaan', { underline: true });
+      doc.moveDown(0.5);
+      doc.fontSize(11).text(`${record.created_at.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}`);
+      doc.moveDown();
+
+      // Add separator line
+      doc.strokeColor('#aaaaaa').lineWidth(0.5).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+      doc.moveDown();
+
+      // Add medical details
+      doc.fontSize(14).text('Detail Rekam Medis', { underline: true });
+      doc.moveDown(0.5);
+
+      // Diagnosis
+      doc.fontSize(12).text('Diagnosis:', { continued: false });
+      doc.fontSize(11).text(record.diagnosis || 'Tidak ada diagnosis');
+      doc.moveDown(0.5);
+
+      // Prescription
+      doc.fontSize(12).text('Resep:', { continued: false });
+      doc.fontSize(11).text(record.prescription || 'Tidak ada resep');
+      doc.moveDown(0.5);
+
+      // Notes
+      doc.fontSize(12).text('Catatan:', { continued: false });
+      doc.fontSize(11).text(record.notes || 'Tidak ada catatan');
+      doc.moveDown();
+
+      // Add footer
+      doc.moveDown(2);
+      doc.strokeColor('#aaaaaa').lineWidth(0.5).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+      doc.moveDown(0.5);
+      doc.fontSize(9).text(`ID Rekam Medis: ${record.id}`, { align: 'left' });
+      doc.fontSize(9).text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })}`, { align: 'left' });
+
+      // Finalize PDF
+      doc.end();
+    }
+  } catch (err) {
+    console.error('exportMedicalRecord error:', err);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -356,7 +525,7 @@ const generateExcelReport = async (records: MedicalRecord[], res: Response, pati
 const generatePDFReport = async (records: MedicalRecord[], res: Response, patientName?: string) => {
   // Create a document
   const doc = new PDFDocument();
-  
+
   // Set filename
   const filename = patientName
     ? `medical_records_${patientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
@@ -390,13 +559,13 @@ const generatePDFReport = async (records: MedicalRecord[], res: Response, patien
 
     doc.fontSize(12).text(`Rekam Medis #${index + 1}`, { underline: true });
     doc.moveDown(0.5);
-    
+
     doc.fontSize(10).text(`ID: ${record.id}`);
     doc.fontSize(10).text(`Tanggal: ${record.created_at.toLocaleDateString('id-ID')}`);
     doc.fontSize(10).text(`Pasien: ${record.patient.name}`);
     doc.fontSize(10).text(`Optometris: ${record.optometrist.name}`);
     doc.moveDown(0.5);
-    
+
     doc.fontSize(10).text('Diagnosis:', { continued: true }).text(record.diagnosis || '-');
     doc.fontSize(10).text('Resep:', { continued: true }).text(record.prescription || '-');
     doc.fontSize(10).text('Catatan:', { continued: true }).text(record.notes || '-');

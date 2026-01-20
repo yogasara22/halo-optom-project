@@ -3,8 +3,10 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 import { adminMiddleware } from '../middlewares/admin.middleware';
 import {
   getAllMedicalRecords,
+  getMedicalRecordById,
   downloadMedicalRecordsReport,
   downloadPatientMedicalRecordsReport,
+  exportMedicalRecord,
   updateMedicalRecord,
   deleteMedicalRecord,
   getMedicalRecordStats
@@ -23,13 +25,19 @@ router.get('/medical-records/report', authMiddleware, adminMiddleware, downloadM
 // 3. Endpoint untuk Mengunduh Laporan Rekam Medis per Pasien
 router.get('/medical-records/patient/:patient_id/report', authMiddleware, adminMiddleware, downloadPatientMedicalRecordsReport);
 
-// 4. Endpoint untuk Mengedit Rekam Medis (opsional)
+// 4. Endpoint untuk Export Rekam Medis Individual ke Excel
+router.get('/medical-records/:id/export', authMiddleware, adminMiddleware, exportMedicalRecord);
+
+// 5. Endpoint untuk Mendapatkan Rekam Medis berdasarkan ID
+router.get('/medical-records/:id', authMiddleware, adminMiddleware, getMedicalRecordById);
+
+// 6. Endpoint untuk Mengedit Rekam Medis (opsional)
 router.put('/medical-records/:id', authMiddleware, adminMiddleware, updateMedicalRecord);
 
-// 5. Endpoint untuk Menghapus Rekam Medis (opsional)
+// 7. Endpoint untuk Menghapus Rekam Medis (opsional)
 router.delete('/medical-records/:id', authMiddleware, adminMiddleware, deleteMedicalRecord);
 
-// 6. Endpoint untuk Mendapatkan Statistik Rekam Medis
+// 8. Endpoint untuk Mendapatkan Statistik Rekam Medis
 router.get('/stats/medical-records', authMiddleware, adminMiddleware, getMedicalRecordStats);
 
 export default router;

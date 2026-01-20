@@ -8,6 +8,7 @@ import { toBoolean } from '../../utils/boolean';
 import { optometristService, Optometrist } from '../../services/optometristService';
 import { patientService } from '../../services/patientService';
 import { API_BASE_URL } from '../../constants/config';
+import InitialAvatar from '../../components/common/InitialAvatar';
 
 export default function BookAppointment() {
   const router = useRouter();
@@ -152,9 +153,14 @@ export default function BookAppointment() {
         return;
       }
 
-      // Redirect to payment screen
-      console.log('🚀 Redirecting to payment screen with ID:', appointmentId);
-      router.push(`/appointments/payment?id=${appointmentId}`);
+      // Redirect to payment screen or success based on type
+      if (type === 'homecare') {
+        console.log('🚀 Redirecting to success screen for Homecare');
+        router.replace('/appointments/success?type=homecare');
+      } else {
+        console.log('🚀 Redirecting to payment screen with ID:', appointmentId);
+        router.push(`/appointments/payment?id=${appointmentId}`);
+      }
     } catch (e: any) {
       console.error('❌ Booking error:', e);
       setError(e?.response?.data?.message || e?.message || 'Gagal membuat janji');
@@ -195,14 +201,12 @@ export default function BookAppointment() {
                     activeOpacity={0.8}
                   >
                     <View style={[styles.avatarRing, active && styles.avatarRingActive]}>
-                      {(() => {
-                        const base = API_BASE_URL.replace(/\/?api$/, '');
-                        let url = opt.photo;
-                        if (url && !/^https?:\/\//i.test(url)) url = base + url;
-                        if (url && /localhost|127\.0\.0\.1/.test(url)) url = url.replace(/^https?:\/\/[^/]+/, base);
-                        const src = url ? { uri: url } : require('../../assets/images/avatar.png');
-                        return <Image source={src} style={{ width: 60, height: 60, borderRadius: 30 }} />;
-                      })()}
+                      <InitialAvatar
+                        name={opt.name}
+                        avatarUrl={opt.avatar_url || opt.photo}
+                        size={60}
+                        style={{ borderRadius: 30 }}
+                      />
                     </View>
                     <Text style={{ fontSize: 12, marginTop: 6, color: active ? '#16a34a' : '#111827' }}>{opt.name}</Text>
                   </TouchableOpacity>
@@ -212,20 +216,17 @@ export default function BookAppointment() {
           </>
         ) : (
           <View style={{ marginBottom: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
-            {/* Show Selected Optometrist Info */}
             {(() => {
               const opt = optometrists.find(o => o.id === selectedOpt);
               if (!opt) return <ActivityIndicator size="small" color="#1876B8" />;
-
-              const base = API_BASE_URL.replace(/\/?api$/, '');
-              let url = opt.photo;
-              if (url && !/^https?:\/\//i.test(url)) url = base + url;
-              if (url && /localhost|127\.0\.0\.1/.test(url)) url = url.replace(/^https?:\/\/[^/]+/, base);
-              const src = url ? { uri: url } : require('../../assets/images/avatar.png');
-
               return (
                 <>
-                  <Image source={src} style={{ width: 50, height: 50, borderRadius: 25, marginRight: 12 }} />
+                  <InitialAvatar
+                    name={opt.name}
+                    avatarUrl={opt.avatar_url || opt.photo}
+                    size={50}
+                    style={{ marginRight: 12, borderRadius: 25 }}
+                  />
                   <View>
                     <Text style={{ fontSize: 12, color: '#64748b' }}>Optometris Terpilih</Text>
                     <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#0f172a' }}>{opt.name}</Text>
@@ -346,7 +347,7 @@ export default function BookAppointment() {
           <Text style={styles.submitText}>{isSubmitting ? 'Memproses...' : 'Buat Janji'}</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 

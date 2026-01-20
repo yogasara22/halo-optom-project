@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Modal, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { optometristAppService, ApiAppointment } from '../../../services/optometristApp.service';
 import { API_BASE_URL } from '../../../constants/config';
+import InitialAvatar from '../../../components/common/InitialAvatar';
 
 export default function AppointmentDetailScreen() {
     const { id } = useLocalSearchParams();
@@ -15,6 +18,10 @@ export default function AppointmentDetailScreen() {
     const [isRescheduleModalVisible, setRescheduleModalVisible] = useState(false);
     const [newDate, setNewDate] = useState(''); // YYYY-MM-DD
     const [newTime, setNewTime] = useState(''); // HH:MM
+    const [dateObj, setDateObj] = useState<Date>(new Date());
+    const [timeObj, setTimeObj] = useState<Date>(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
 
     useEffect(() => {
         fetchDetail();
@@ -27,6 +34,18 @@ export default function AppointmentDetailScreen() {
                 setAppointment(data);
                 setNewDate(data.date);
                 setNewTime(data.start_time?.slice(0, 5) || '');
+
+                // Set date object
+                const parts = data.date.split('-');
+                setDateObj(new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+
+                // Set time object
+                if (data.start_time) {
+                    const timeParts = data.start_time.split(':');
+                    const timeDate = new Date();
+                    timeDate.setHours(Number(timeParts[0]), Number(timeParts[1]));
+                    setTimeObj(timeDate);
+                }
             }
         } catch (error) {
             console.error(error);
@@ -53,19 +72,11 @@ export default function AppointmentDetailScreen() {
     const handleRescheduleSubmit = async () => {
         if (!appointment) return;
         try {
-            // Basic validation
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-                Alert.alert('Format Salah', 'Gunakan format YYYY-MM-DD');
-                return;
-            }
-            if (!/^\d{2}:\d{2}$/.test(newTime)) {
-                Alert.alert('Format Salah', 'Gunakan format HH:MM');
-                return;
-            }
-
             setLoading(true);
             await optometristAppService.rescheduleAppointment(appointment.id, newDate, newTime);
             setRescheduleModalVisible(false);
+            setShowDatePicker(false);
+            setShowTimePicker(false);
             Alert.alert('Sukses', 'Jadwal berhasil diperbarui');
             fetchDetail();
         } catch (err) {
@@ -73,6 +84,19 @@ export default function AppointmentDetailScreen() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const formatDate = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    const formatTime = (date: Date) => {
+        const h = String(date.getHours()).padStart(2, '0');
+        const m = String(date.getMinutes()).padStart(2, '0');
+        return `${h}:${m}`;
     };
 
     if (loading && !appointment) {
@@ -97,7 +121,7 @@ export default function AppointmentDetailScreen() {
     if (avatarUrl && /localhost|127\.0\.0\.1/.test(avatarUrl)) avatarUrl = avatarUrl.replace(/^https?:\/\/[^/]+/, base);
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -111,8 +135,11 @@ export default function AppointmentDetailScreen() {
                 {/* Patient Card */}
                 <View style={styles.card}>
                     <View style={styles.profileRow}>
-                        <Image
-                            source={avatarUrl ? { uri: avatarUrl } : require('../../../assets/images/avatar.png')}
+                        <InitialAvatar
+                            name={appointment.patient?.name || 'Pasien'}
+                            avatarUrl={avatarUrl}
+                            size={60}
+                            role="patient"
                             style={styles.avatar}
                         />
                         <View style={styles.profileInfo}>
@@ -183,8 +210,12 @@ export default function AppointmentDetailScreen() {
                         </TouchableOpacity>
                     )}
 
-                    <TouchableOpacity style={styles.btnSecondary} onPress={() => setRescheduleModalVisible(true)}>
-                        <Text style={styles.btnSecondaryText}>Jadwalkan Ulang</Text>
+                    <TouchableOpacity
+                        style={[styles.btnSecondary, appointment.status === 'confirmed' && styles.btnDisabled]}
+                        onPress={() => appointment.status !== 'confirmed' && setRescheduleModalVisible(true)}
+                        activeOpacity={appointment.status === 'confirmed' ? 1 : 0.7}
+                    >
+                        <Text style={[styles.btnSecondaryText, appointment.status === 'confirmed' && styles.btnDisabledText]}>Jadwalkan Ulang</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -195,24 +226,71 @@ export default function AppointmentDetailScreen() {
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Jadwalkan Ulang</Text>
 
-                        <Text style={styles.inputLabel}>Tanggal (YYYY-MM-DD)</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={newDate}
-                            onChangeText={setNewDate}
-                            placeholder="2024-01-01"
-                        />
+                        <Text style={styles.inputLabel}>Tanggal</Text>
+                        <TouchableOpacity
+                            style={styles.pickerButton}
+                            onPress={() => setShowDatePicker(true)}
+                        >
+                            <Ionicons name="calendar-outline" size={20} color="#64748b" />
+                            <Text style={styles.pickerButtonText}>
+                                {newDate || 'Pilih Tanggal'}
+                            </Text>
+                        </TouchableOpacity>
 
-                        <Text style={styles.inputLabel}>Waktu (HH:MM)</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={newTime}
-                            onChangeText={setNewTime}
-                            placeholder="14:00"
-                        />
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={dateObj}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedDate) => {
+                                    if (Platform.OS === 'android') {
+                                        setShowDatePicker(false);
+                                    }
+                                    if (selectedDate) {
+                                        setDateObj(selectedDate);
+                                        setNewDate(formatDate(selectedDate));
+                                    }
+                                }}
+                            />
+                        )}
+
+                        <Text style={styles.inputLabel}>Waktu</Text>
+                        <TouchableOpacity
+                            style={styles.pickerButton}
+                            onPress={() => setShowTimePicker(true)}
+                        >
+                            <Ionicons name="time-outline" size={20} color="#64748b" />
+                            <Text style={styles.pickerButtonText}>
+                                {newTime || 'Pilih Waktu'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {showTimePicker && (
+                            <DateTimePicker
+                                value={timeObj}
+                                mode="time"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'clock'}
+                                onChange={(event, selectedTime) => {
+                                    if (Platform.OS === 'android') {
+                                        setShowTimePicker(false);
+                                    }
+                                    if (selectedTime) {
+                                        setTimeObj(selectedTime);
+                                        setNewTime(formatTime(selectedTime));
+                                    }
+                                }}
+                            />
+                        )}
 
                         <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setRescheduleModalVisible(false)}>
+                            <TouchableOpacity
+                                style={styles.modalBtnCancel}
+                                onPress={() => {
+                                    setRescheduleModalVisible(false);
+                                    setShowDatePicker(false);
+                                    setShowTimePicker(false);
+                                }}
+                            >
                                 <Text style={styles.modalBtnCancelText}>Batal</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.modalBtnSubmit} onPress={handleRescheduleSubmit}>
@@ -222,7 +300,7 @@ export default function AppointmentDetailScreen() {
                     </View>
                 </View>
             </Modal>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -244,7 +322,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#f1f5f9',
-        paddingTop: 60, // Safe area
     },
     backButton: {
         padding: 8,
@@ -276,7 +353,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: '#f1f5f9',
+        // backgroundColor removed to allow InitialAvatar to set its own color
     },
     profileInfo: {
         flex: 1,
@@ -361,6 +438,13 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 16,
     },
+    btnDisabled: {
+        backgroundColor: '#f1f5f9',
+        borderColor: '#e2e8f0',
+    },
+    btnDisabledText: {
+        color: '#94a3b8',
+    },
     // Modal Styles
     modalOverlay: {
         flex: 1,
@@ -384,6 +468,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#334155',
         marginBottom: 8,
+        marginTop: 8,
     },
     input: {
         backgroundColor: '#f8fafc',
@@ -392,6 +477,22 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 12,
         marginBottom: 16,
+    },
+    pickerButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: '#f8fafc',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 16,
+    },
+    pickerButtonText: {
+        fontSize: 14,
+        color: '#0f172a',
+        fontWeight: '500',
     },
     modalActions: {
         flexDirection: 'row',

@@ -1,19 +1,35 @@
 import { API_BASE_URL } from '../constants/config';
 
 export const fixImageUrl = (url?: string) => {
-    if (!url) return undefined;
+    if (!url || typeof url !== 'string') {
+        console.log('🔗 fixImageUrl: no URL provided', url);
+        return undefined;
+    }
 
-    // Jika URL sudah valid (bukan localhost/127.0.0.1), kembalikan langsung
-    if (!url.includes('localhost') && !url.includes('127.0.0.1')) {
+    // Hilangkan /api di akhir API_BASE_URL untuk mendapatkan root domain
+    const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+
+    // 1. Jika starts with /, prepend baseUrl
+    if (url.startsWith('/')) {
+        const result = `${baseUrl}${url}`;
+        console.log('🔗 fixImageUrl (relative):', url, '→', result);
+        return result;
+    }
+
+    // 2. Jika starts with http/https
+    if (url.match(/^https?:\/\//)) {
+        // Jika localhost, replace origin with baseUrl
+        if (url.includes('localhost') || url.includes('127.0.0.1')) {
+            const result = url.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, baseUrl);
+            console.log('🔗 fixImageUrl (localhost):', url, '→', result);
+            return result;
+        }
+        console.log('🔗 fixImageUrl (absolute):', url);
         return url;
     }
 
-    // Ambil hostname dari API_BASE_URL (misal: 10.84.155.39)
-    // API_BASE_URL format: http://10.84.155.39:4000/api
-    const targetHost = API_BASE_URL.split('://')[1].split(':')[0];
-
-    // Replace localhost atau 127.0.0.1 dengan targetHost
-    let newUrl = url.replace('localhost', targetHost).replace('127.0.0.1', targetHost);
-
-    return newUrl;
+    // 3. Jika tidak start with slash dan tidak start with http, assume relative path missing slash
+    const result = `${baseUrl}/${url}`;
+    console.log('🔗 fixImageUrl (relative without /):', url, '→', result);
+    return result;
 };

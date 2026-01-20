@@ -25,6 +25,8 @@ import paymentAppointmentRoutes from './routes/payment-appoinment.routes';
 import paymentRoutes from './routes/payment.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import reportsRoutes from './routes/reports.routes';
+import walletRoutes from './routes/wallet.routes';
+import withdrawRoutes from './routes/withdraw.routes';
 
 
 // Load environment variables
@@ -57,6 +59,7 @@ app.use('/api/patients/appointments', appointmentRoutes);
 app.use('/api/medicalRecords', medicalRecordRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/optometrists', optometristRoutes);
@@ -67,6 +70,8 @@ app.use('/api/payments-order', paymentOrderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/withdraw-requests', withdrawRoutes);
 
 // Simple test route
 app.get('/', (_req, res) => {

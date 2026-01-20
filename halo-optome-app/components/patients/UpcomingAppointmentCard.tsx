@@ -5,11 +5,15 @@ import {
   Image,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Appointment } from '../../services/patientService';
 import { API_BASE_URL } from '../../constants/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState, useEffect } from 'react';
+import InitialAvatar from '../common/InitialAvatar';
 
 interface UpcomingAppointmentCardProps {
   appointment: Appointment;
@@ -17,16 +21,58 @@ interface UpcomingAppointmentCardProps {
 
 const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appointment }: UpcomingAppointmentCardProps) => {
   const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  // Fetch unread messages count for chat appointments
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      console.log('Checking appointment:', {
+        method: appointment.method,
+        hasChat: !!appointment.chat,
+        roomId: appointment.chat?.room_id
+      });
+
+      if (appointment.method === 'chat' && appointment.chat?.room_id) {
+        try {
+          const token = await AsyncStorage.getItem('authToken');
+          if (!token) {
+            console.log('No auth token found');
+            return;
+          }
+
+          console.log('Fetching unread count from:', `${API_BASE_URL}/chats/unread/count`);
+          const response = await fetch(`${API_BASE_URL}/chats/unread/count`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Unread count response:', data);
+            setUnreadCount(data.count || 0);
+          } else {
+            console.log('Failed to fetch unread count:', response.status);
+          }
+        } catch (e) {
+          console.error('Failed to fetch unread count:', e);
+        }
+      } else {
+        console.log('Skipping unread fetch - not a chat appointment or no room_id');
+      }
+    };
+
+    fetchUnreadCount();
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchUnreadCount, 10000);
+    return () => clearInterval(interval);
+  }, [appointment]);
 
   const dateLabel = new Date(appointment.date).toLocaleDateString('id-ID', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   });
 
-  const base = API_BASE_URL.replace(/\/?api$/, '');
-  let avatarUrl = appointment.optometrist?.photo || (appointment as any)?.optometrist?.avatar_url;
-  if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) avatarUrl = base + avatarUrl;
-  if (avatarUrl && /localhost|127\.0\.0\.1/.test(avatarUrl)) avatarUrl = avatarUrl.replace(/^https?:\/\/[^/]+/, base);
-  const avatarSource = avatarUrl ? { uri: avatarUrl } : require('../../assets/images/optometris/itmam.png');
+  const avatarUrl = appointment.optometrist?.photo || (appointment as any)?.optometrist?.avatar_url;
 
   // Determine if user can join consultation
   const canJoin = appointment.payment_status === 'paid' &&
@@ -51,6 +97,18 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
   // Determine button label and icon
   const getActionButton = () => {
     if (appointment.payment_status === 'unpaid') {
+      if (appointment.type === 'homecare') {
+        return {
+          label: 'Bayar Tunai',
+          icon: 'cash-outline' as const,
+          onPress: () => {
+            Alert.alert(
+              'Pembayaran Tunai',
+              'Silakan lakukan pembayaran tunai saat optometris datang ke lokasi Anda.'
+            );
+          },
+        };
+      }
       return {
         label: 'Bayar Sekarang',
         icon: 'card-outline' as const,
@@ -93,7 +151,13 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
       <View style={styles.card}>
         {/* Baris atas: info dokter */}
         <View style={styles.headerRow}>
-          <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
+          <InitialAvatar
+            name={appointment.optometrist?.name || 'Optometris'}
+            avatarUrl={avatarUrl}
+            size={56}
+            style={styles.avatar}
+            role="optometrist"
+          />
           <View style={styles.info}>
             <Text style={styles.name}>{appointment.optometrist?.name || 'Optometris'}</Text>
             <Text style={styles.specialty}>Optometris</Text>
@@ -117,18 +181,22 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
 
         {/* Tombol aksi */}
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.btnOutline} onPress={handleReschedule}>
-            <Text style={styles.btnText}>Atur Ulang</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.btnFilled,
+              styles.btnFullWidth,
               appointment.payment_status === 'unpaid' && styles.btnPayment
             ]}
             onPress={actionButton.onPress}
           >
             <Ionicons name={actionButton.icon} size={16} color="#fff" style={{ marginRight: 6 }} />
             <Text style={styles.btnTextFilled}>{actionButton.label}</Text>
+            {/* Badge for unread messages on Chat button */}
+            {actionButton.label === 'Chat' && unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -202,7 +270,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   btnOutline: {
     borderWidth: 1,
@@ -219,6 +287,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  btnFullWidth: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   btnPayment: {
     backgroundColor: '#f59e0b', // Orange color for payment
   },
@@ -229,5 +301,24 @@ const styles = StyleSheet.create({
   btnTextFilled: {
     color: '#fff',
     fontWeight: '600',
+  },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: '#1876B8',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

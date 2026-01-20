@@ -9,6 +9,7 @@ import { useAuth } from '../../../context/AuthContext';
 import optometristService, { Optometrist } from '../../../services/optometristService';
 import reviewService, { Review } from '../../../services/reviewService';
 import { API_BASE_URL } from '../../../constants/config';
+import InitialAvatar from '../../../components/common/InitialAvatar';
 
 const { width } = Dimensions.get('window');
 
@@ -74,12 +75,7 @@ export default function OptometristDetailScreen() {
         }
     };
 
-    const resolveImage = (url?: string) => {
-        const base = API_BASE_URL.replace(/\/?api$/, '');
-        if (url && !/^https?:\/\//i.test(url)) return { uri: base + url };
-        if (url && /localhost|127\.0\.0\.1/.test(url)) return { uri: url.replace(/^https?:\/\/[^/]+/, base) };
-        return require('../../../assets/images/avatar.png');
-    };
+
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
@@ -130,7 +126,12 @@ export default function OptometristDetailScreen() {
 
                         <View style={styles.profileHeaderContent}>
                             <View style={styles.avatarWrapper}>
-                                <Image source={resolveImage(optometrist.photo)} style={styles.avatar} />
+                                <InitialAvatar
+                                    name={optometrist.name}
+                                    avatarUrl={optometrist.avatar_url || optometrist.photo}
+                                    size={100}
+                                    style={styles.avatar}
+                                />
                             </View>
                             <Text style={styles.name}>{optometrist.name}</Text>
                             <Text style={styles.speciality}>{optometrist.specialization || 'Optometris Profesional'}</Text>
@@ -207,7 +208,12 @@ export default function OptometristDetailScreen() {
                                 <View key={rev.id} style={styles.reviewItem}>
                                     <View style={styles.reviewHeader}>
                                         <View style={styles.reviewerInfo}>
-                                            <Image source={resolveImage(rev.user?.avatar_url)} style={styles.reviewerAvatar} />
+                                            <InitialAvatar
+                                                name={rev.user?.name || 'Pasien'}
+                                                avatarUrl={rev.user?.avatar_url}
+                                                size={36}
+                                                style={styles.reviewerAvatar}
+                                            />
                                             <View>
                                                 <Text style={styles.reviewerName}>{rev.user?.name || 'Pasien'}</Text>
                                                 <View style={{ flexDirection: 'row' }}>
@@ -349,7 +355,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#fff',
+        // backgroundColor: '#fff', // Removed to allow InitialAvatar background to show
     },
     name: {
         fontSize: 22,

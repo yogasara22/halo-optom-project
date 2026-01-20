@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
-import Button  from '@/components/ui/Button';
+import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -50,7 +50,7 @@ const MedicalRecordsPage: React.FC = () => {
     endDate: '',
   });
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   // Menggunakan React Query untuk data fetching dan caching
   const { data: recordsData, isLoading, error: queryError, refetch } = useMedicalRecords({
     page: currentPage,
@@ -59,11 +59,11 @@ const MedicalRecordsPage: React.FC = () => {
     startDate: dateRange.startDate,
     endDate: dateRange.endDate
   });
-  
+
   const records = recordsData?.data || [];
   const totalPages = recordsData?.totalPages || 1;
   const error = queryError instanceof Error ? queryError.message : '';
-  
+
   // Menggunakan React Query untuk stats
   const { data: stats = {
     totalRecords: 0,
@@ -71,7 +71,7 @@ const MedicalRecordsPage: React.FC = () => {
     activePatients: 0,
     monthlyRecords: 0,
   } } = useMedicalRecordStats();
-  
+
   // Define table columns
   const columns: Column<MedicalRecordDetail>[] = [
     {
@@ -80,12 +80,12 @@ const MedicalRecordsPage: React.FC = () => {
       render: (value: any, row: MedicalRecordDetail) => <span className="text-xs font-mono">{row.id.substring(0, 8)}...</span>
     },
     {
-      key: 'user.name',
+      key: 'patient.name',
       title: 'Pasien',
       render: (value: any, row: MedicalRecordDetail) => (
         <div className="flex items-center gap-2">
           <UserIcon className="h-4 w-4 text-muted-foreground" />
-          <span>{row.user?.name || 'Unknown'}</span>
+          <span>{row.patient?.name || 'Unknown'}</span>
         </div>
       )
     },
@@ -104,12 +104,12 @@ const MedicalRecordsPage: React.FC = () => {
       )
     },
     {
-      key: 'createdAt',
+      key: 'created_at',
       title: 'Tanggal',
       render: (value: any, row: MedicalRecordDetail) => (
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span>{row.createdAt ? format(new Date(row.createdAt), 'dd MMM yyyy') : '-'}</span>
+          <span>{row.created_at ? format(new Date(row.created_at), 'dd MMM yyyy') : '-'}</span>
         </div>
       )
     },
@@ -140,14 +140,14 @@ const MedicalRecordsPage: React.FC = () => {
   ];
 
   // Tidak perlu useEffect untuk fetching data karena React Query menanganinya
-  
+
   // Fungsi untuk memfilter dan mencari data
   const handleSearch = () => {
     setCurrentPage(1);
     // React Query akan otomatis memicu refetch dengan parameter yang diperbarui
     fetchRecords(1);
   };
-  
+
   const handleFilterChange = (key: keyof MedicalRecordFilters, value: any) => {
     if (key === 'search') {
       setSearchTerm(value);
@@ -158,7 +158,7 @@ const MedicalRecordsPage: React.FC = () => {
       }));
     }
   };
-  
+
   // Fungsi untuk memuat ulang data rekam medis
   const fetchRecords = (page = currentPage) => {
     // React Query akan otomatis memicu refetch dengan parameter yang diperbarui
@@ -188,7 +188,7 @@ const MedicalRecordsPage: React.FC = () => {
 
   // Menggunakan React Query mutation untuk export record
   const exportRecordMutation = useExportMedicalRecord();
-  
+
   const exportRecord = async (recordId: string) => {
     try {
       const blob = await exportRecordMutation.mutateAsync({ recordId, format: 'pdf' });
@@ -207,7 +207,7 @@ const MedicalRecordsPage: React.FC = () => {
 
   // Menggunakan React Query mutation untuk export semua records
   const exportAllRecordsMutation = useExportMedicalRecord();
-  
+
   const exportAllRecords = async (exportType: 'excel' | 'pdf' = 'excel') => {
     try {
       const exportFilters = {
@@ -216,9 +216,9 @@ const MedicalRecordsPage: React.FC = () => {
         endDate: dateRange.endDate,
         format: exportType
       };
-      
+
       const blob = await exportAllRecordsMutation.mutateAsync(exportFilters);
-      
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -243,7 +243,7 @@ const MedicalRecordsPage: React.FC = () => {
             <h1 className="text-3xl font-bold tracking-tight">Rekam Medis</h1>
             <p className="text-muted-foreground">Kelola dan lihat rekam medis pasien</p>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -288,7 +288,7 @@ const MedicalRecordsPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -301,7 +301,7 @@ const MedicalRecordsPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -314,7 +314,7 @@ const MedicalRecordsPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -353,7 +353,7 @@ const MedicalRecordsPage: React.FC = () => {
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </div>
-                
+
                 <DateRangePicker
                   className="w-full"
                   placeholder="Pilih rentang tanggal"
@@ -366,19 +366,19 @@ const MedicalRecordsPage: React.FC = () => {
                     }
                   }}
                 />
-                
+
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="primary" 
+                  <Button
+                    variant="primary"
                     className="flex-1"
                     onClick={handleSearch}
                   >
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>
-                  
-                  <Button 
-                    variant="outline" 
+
+                  <Button
+                    variant="outline"
                     className="flex-1"
                     onClick={() => {
                       setSearchTerm('');
@@ -392,7 +392,7 @@ const MedicalRecordsPage: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Table Content */}
             {isLoading ? (
               <div className="space-y-2">
@@ -405,8 +405,8 @@ const MedicalRecordsPage: React.FC = () => {
             ) : error ? (
               <div className="text-center py-8 text-red-500">
                 <p>{error}</p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="mt-4"
                   onClick={() => fetchRecords()}
                 >
@@ -415,9 +415,9 @@ const MedicalRecordsPage: React.FC = () => {
               </div>
             ) : (
               <div className="rounded-md border">
-                <DataTable 
-                  columns={columns} 
-                  data={records} 
+                <DataTable
+                  columns={columns}
+                  data={records}
                 />
               </div>
             )}
@@ -468,7 +468,7 @@ const MedicalRecordsPage: React.FC = () => {
                 Informasi lengkap rekam medis pasien
               </DialogDescription>
             </DialogHeader>
-            
+
             {selectedRecord && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                 <div className="space-y-4">
@@ -478,15 +478,15 @@ const MedicalRecordsPage: React.FC = () => {
                       <p className="flex items-center gap-2">
                         <UserIcon className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">Nama:</span>{' '}
-                        {selectedRecord.user?.name || 'N/A'}
+                        {selectedRecord.patient?.name || 'N/A'}
                       </p>
                       <p className="flex items-center gap-2">
                         <span className="font-medium">Email:</span>{' '}
-                        {selectedRecord.user?.email || 'N/A'}
+                        {selectedRecord.patient?.email || 'N/A'}
                       </p>
                       <p className="flex items-center gap-2">
                         <span className="font-medium">Telepon:</span>{' '}
-                        {selectedRecord.user?.phone || 'N/A'}
+                        {selectedRecord.patient?.phone || 'N/A'}
                       </p>
                     </div>
                   </div>
@@ -500,7 +500,7 @@ const MedicalRecordsPage: React.FC = () => {
                     <h3 className="text-lg font-semibold mb-2">Tanggal</h3>
                     <p className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {selectedRecord.createdAt ? format(new Date(selectedRecord.createdAt), 'dd MMMM yyyy') : '-'}
+                      {selectedRecord.created_at ? format(new Date(selectedRecord.created_at), 'dd MMMM yyyy') : '-'}
                     </p>
                   </div>
                 </div>
@@ -533,7 +533,7 @@ const MedicalRecordsPage: React.FC = () => {
                 </div>
               </div>
             )}
-            
+
             <div className="flex justify-end mt-4">
               <Button
                 variant="outline"

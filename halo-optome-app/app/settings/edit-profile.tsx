@@ -4,10 +4,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
+import InitialAvatar from '../../components/common/InitialAvatar';
 import patientService from '../../services/patientService';
 import { API_BASE_URL } from '../../constants/config';
 let ImagePicker: any = null;
-try { ImagePicker = require('expo-image-picker'); } catch {}
+try { ImagePicker = require('expo-image-picker'); } catch { }
 
 export default function EditProfilePage() {
   const { user } = useAuth();
@@ -15,7 +16,7 @@ export default function EditProfilePage() {
   const insets = useSafeAreaInsets();
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState((user as any)?.phone || '');
-  const [gender, setGender] = useState<'laki-laki'|'perempuan'>(((user as any)?.gender === 'perempuan' ? 'perempuan' : 'laki-laki'));
+  const [gender, setGender] = useState<'laki-laki' | 'perempuan'>(((user as any)?.gender === 'perempuan' ? 'perempuan' : 'laki-laki'));
   const [address, setAddress] = useState((user as any)?.address || '');
   const [strNumber, setStrNumber] = useState((user as any)?.str_number || '');
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>((user as any)?.avatar_url || undefined);
@@ -37,17 +38,18 @@ export default function EditProfilePage() {
             <Ionicons name="chevron-back" size={24} color="#0f172a" />
           </TouchableOpacity>
           <Text style={styles.title}>Edit Profile</Text>
-          <View style={{width:24}} />
+          <View style={{ width: 24 }} />
         </View>
 
         <View style={styles.card}>
           <View style={{ alignItems: 'center', marginBottom: 16 }}>
             <View style={styles.avatarCircleLarge}>
-              {resolvedAvatar ? (
-                <Image source={{ uri: resolvedAvatar }} style={{ width: '100%', height: '100%' }} />
-              ) : (
-                <Image source={require('../../assets/images/avatar.png')} style={{ width: '100%', height: '100%' }} />
-              )}
+              <InitialAvatar
+                name={name || user?.name || ''}
+                avatarUrl={resolvedAvatar}
+                size={96}
+                role={((user as any)?.role === 'OPTOMETRIST' || (user as any)?.role === 'optometris') ? 'optometrist' : 'patient'}
+              />
             </View>
             <TouchableOpacity
               style={styles.changePhotoBtn}
@@ -92,7 +94,7 @@ export default function EditProfilePage() {
 
           <Text style={styles.label}>Jenis Kelamin</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 8 }}>
-            {(['laki-laki','perempuan'] as const).map(g => (
+            {(['laki-laki', 'perempuan'] as const).map(g => (
               <TouchableOpacity key={g} onPress={() => setGender(g)} style={[styles.chip, gender === g && styles.chipActive]}>
                 <Text style={[styles.chipText, gender === g && styles.chipTextActive]}>{g === 'laki-laki' ? 'Laki-laki' : 'Perempuan'}</Text>
               </TouchableOpacity>

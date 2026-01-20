@@ -30,11 +30,11 @@ export default function LoginScreen() {
     }
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const loggedInUser = await login(email, password);
+      if (loggedInUser) {
         // Redirect berdasarkan role user yang baru saja login
-        // Mendukung format role dari backend: 'OPTOMETRIST' atau 'optometris'
-        const role = user?.role;
+        // Menggunakan user yang dikembalikan dari login, bukan context user (yang masih stale)
+        const role = loggedInUser.role;
         if (role === 'OPTOMETRIST' || role === 'optometris') {
           router.replace('/optometrist');
         } else {

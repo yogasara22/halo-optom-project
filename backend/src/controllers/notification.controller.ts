@@ -1,85 +1,87 @@
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/ormconfig';
-import { Notification, NotificationType } from '../entities/Notification';
-import { User } from '../entities/User';
+import { notificationService } from '../services/notification.service';
 
-/**
- * Membuat notifikasi untuk user tertentu
- */
-export const createNotification = async (
-  userId: string, // UUID string
-  title: string,
-  body: string,
-  type?: NotificationType,
-  meta?: any
-) => {
-  try {
-    const notificationRepo = AppDataSource.getRepository(Notification);
-    const notification = notificationRepo.create({
-      user: { id: userId } as User,
-      title,
-      body,
-      type,
-      meta,
-      is_read: false
-    });
-    await notificationRepo.save(notification);
-    return notification;
-  } catch (err) {
-    console.error('Error creating notification:', err);
-    throw err;
-  }
-};
-
-/**
- * Mengambil semua notifikasi milik user yang login
- */
 export const getUserNotifications = async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user as User;
-    if (!user?.id) {
-      return res.status(401).json({ message: 'User not authenticated' });
+    const customReq = req as any;
+    const userId = customReq.user?.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const notificationRepo = AppDataSource.getRepository(Notification);
-    const notifications = await notificationRepo.find({
-      where: { user: { id: user.id } },
-      order: { created_at: 'DESC' }
-    });
+    const offset = (page - 1) * limit;
+    const result = await notificationService.getUserNotifications(userId, limit, offset);
 
-    return res.json(notifications);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.json({
+      data: result.data,
+      meta: {
+        total: result.total,
+        page,
+        limit,
+        total_pages: Math.ceil(result.total / limit),
+        unread_count: result.unread
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching notifications:', error);
+    return res.status(500).json({ message: error.message || 'Internal server error' });
   }
 };
 
-/**
- * Menandai notifikasi sebagai sudah dibaca
- */
+export const getUnreadCount = async (req: Request, res: Response) => {
+  try {
+    const customReq = req as any;
+    const userId = customReq.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const count = await notificationService.getUnreadCount(userId);
+
+    return res.json({ count });
+  } catch (error: any) {
+    console.error('Error fetching unread count:', error);
+    return res.status(500).json({ message: error.message || 'Internal server error' });
+  }
+};
+
 export const markAsRead = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params; // UUID string
-    const user = (req as any).user as User;
-    if (!user?.id) {
-      return res.status(401).json({ message: 'User not authenticated' });
+    const customReq = req as any;
+    const userId = customReq.user?.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const notificationRepo = AppDataSource.getRepository(Notification);
-    const notification = await notificationRepo.findOne({
-      where: { id, user: { id: user.id } }
-    });
+    await notificationService.markAsRead(id, userId);
 
-    if (!notification) {
-      return res.status(404).json({ message: 'Notifikasi tidak ditemukan' });
+    return res.json({ message: 'Notification marked as read' });
+  } catch (error: any) {
+    console.error('Error marking notification as read:', error);
+    return res.status(500).json({ message: error.message || 'Internal server error' });
+  }
+};
+
+export const markAllAsRead = async (req: Request, res: Response) => {
+  try {
+    const customReq = req as any;
+    const userId = customReq.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    notification.is_read = true;
-    await notificationRepo.save(notification);
+    await notificationService.markAllAsRead(userId);
 
-    return res.json({ message: 'Notifikasi ditandai sebagai sudah dibaca' });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.json({ message: 'All notifications marked as read' });
+  } catch (error: any) {
+    console.error('Error marking all as read:', error);
+    return res.status(500).json({ message: error.message || 'Internal server error' });
   }
 };

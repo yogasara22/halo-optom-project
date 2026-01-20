@@ -15,6 +15,7 @@ import {
   ChartBarIcon,
   DocumentArrowDownIcon,
   BanknotesIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Rekam Medis', href: '/dashboard/medical-records', icon: DocumentTextIcon },
   { name: 'Manajemen Produk', href: '/dashboard/products', icon: ShoppingBagIcon },
   { name: 'Manajemen Transaksi', href: '/dashboard/transactions', icon: CreditCardIcon },
+  { name: 'Penarikan Dana', href: '/dashboard/withdraw-requests', icon: ArrowPathIcon },
   { name: 'Manajemen Layanan', href: '/dashboard/services', icon: BanknotesIcon },
   { name: 'Review & Feedback', href: '/dashboard/reviews', icon: StarIcon },
   { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
@@ -59,8 +61,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-20 px-4 bg-gradient-to-r from-[#2563EB] via-[#3DBD61] to-[#2563EB] relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#2563EB]/90 to-[#3DBD61]/90 backdrop-blur-sm"></div>
+          <div className="flex items-center justify-center h-20 px-4 bg-linear-to-r from-[#2563EB] via-[#3DBD61] to-[#2563EB] relative overflow-hidden">
+            <div className="absolute inset-0 bg-linear-to-r from-[#2563EB]/90 to-[#3DBD61]/90 backdrop-blur-sm"></div>
             <div className="relative z-10 text-center">
               <h1 className="text-xl font-bold text-white mb-1">Halo Optom</h1>
               <p className="text-white/80 text-xs font-medium tracking-wider">ADMIN PANEL</p>
@@ -81,8 +83,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   className={clsx(
                     'group flex items-center px-4 py-3 text-sm font-medium rounded-2xl transition-all duration-300 relative overflow-hidden',
                     isActive
-                      ? 'bg-gradient-to-r from-[#2563EB]/10 to-[#3DBD61]/10 text-[#2563EB] shadow-lg border border-[#2563EB]/20'
-                      : 'text-gray-600 hover:bg-gradient-to-r hover:from-gray-100/80 hover:to-gray-200/50 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]'
+                      ? 'bg-linear-to-r from-[#2563EB]/10 to-[#3DBD61]/10 text-[#2563EB] shadow-lg border border-[#2563EB]/20'
+                      : 'text-gray-600 hover:bg-linear-to-r hover:from-gray-100/80 hover:to-gray-200/50 hover:text-gray-900 hover:shadow-md hover:scale-[1.02]'
                   )}
                   onClick={() => {
                     if (window.innerWidth < 1024) {
@@ -92,14 +94,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 >
                   {/* Active indicator */}
                   {isActive && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#2563EB] to-[#3DBD61] rounded-r-full"></div>
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-linear-to-b from-[#2563EB] to-[#3DBD61] rounded-r-full"></div>
                   )}
-                  
+
                   {/* Icon container */}
                   <div className={clsx(
                     'flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 mr-3',
-                    isActive 
-                      ? 'bg-[#2563EB]/10 group-hover:bg-[#2563EB]/20' 
+                    isActive
+                      ? 'bg-[#2563EB]/10 group-hover:bg-[#2563EB]/20'
                       : 'bg-gray-100/50 group-hover:bg-gray-200/80 group-hover:scale-110'
                   )}>
                     <item.icon className={clsx(
@@ -107,10 +109,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                       isActive ? 'text-[#2563EB]' : 'text-gray-500 group-hover:text-gray-700'
                     )} />
                   </div>
-                  
+
                   {/* Text */}
                   <span className="flex-1 font-medium">{item.name}</span>
-                  
+
                   {/* Arrow indicator for active */}
                   {isActive && (
                     <div className="text-[#2563EB] opacity-70">

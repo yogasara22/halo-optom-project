@@ -4,6 +4,7 @@ import { Appointment } from '../entities/Appointment';
 import { createVideoSdkRoom } from './videosdk.service';
 import { Invoice } from '../config/xendit';
 import logger from '../utils/logger';
+import { walletService } from './wallet.service';
 
 interface UpdateAppointmentStatusPayload {
   status?: Appointment['status'];
@@ -26,6 +27,7 @@ export async function updateAppointmentStatus(
 
   let shouldCreateRoom = false;
   let shouldCreateChatRoom = false;
+  let commissionAmount = 0;
 
   // Cek perubahan payment_status
   if (
@@ -37,8 +39,8 @@ export async function updateAppointmentStatus(
     const basePrice = Number(appointment.price || 0);
     const percentage = Number(appointment.commission_percentage || 0);
     if (basePrice > 0 && percentage > 0) {
-      const amount = Number(((basePrice * percentage) / 100).toFixed(2));
-      appointment.commission_amount = amount as any;
+      commissionAmount = Number(((basePrice * percentage) / 100).toFixed(2));
+      appointment.commission_amount = commissionAmount as any;
       appointment.commission_calculated_at = new Date();
     }
     // Jika metode video → bikin room
@@ -54,6 +56,16 @@ export async function updateAppointmentStatus(
   // Update field yang dikirim
   Object.assign(appointment, payload);
   await appointmentRepo.save(appointment);
+
+  // Add commission to wallet if applicable
+  if (commissionAmount > 0 && appointment.optometrist) {
+    try {
+      await walletService.addCommission(appointment.optometrist.id, commissionAmount);
+      logger.info(`Commission of ${commissionAmount} added to wallet for user ${appointment.optometrist.id}`);
+    } catch (error) {
+      logger.error('Failed to add commission to wallet', error);
+    }
+  }
 
   // Buat video room jika diperlukan
   if (shouldCreateRoom) {

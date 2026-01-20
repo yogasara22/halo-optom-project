@@ -1,10 +1,11 @@
 // constants/config.ts
 
 // API Configuration
-// export const API_BASE_URL = 'http://localhost:4000/api';
+// Gunakan ngrok untuk URL yang stabil (tidak berubah meskipun IP lokal berubah)
+export const API_BASE_URL = 'https://mallory-nonevidential-unhumourously.ngrok-free.dev/api';
 
-// Gunakan IP lokal untuk pengujian di perangkat fisik
-export const API_BASE_URL = 'http://10.84.155.39:4000/api';
+// Alternatif: gunakan IP lokal (akan berubah jika ganti WiFi)
+// export const API_BASE_URL = 'http://10.23.75.39:4000/api';
 
 // App Configuration
 export const APP_NAME = 'Halo Optom';

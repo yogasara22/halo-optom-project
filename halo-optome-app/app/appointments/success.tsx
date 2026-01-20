@@ -2,10 +2,12 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function PaymentSuccessScreen() {
     const router = useRouter();
+    const { type } = useLocalSearchParams();
+    const isHomecare = type === 'homecare';
 
     const handleBackToHome = () => {
         router.replace('/patient');
@@ -26,10 +28,12 @@ export default function PaymentSuccessScreen() {
                 </View>
 
                 {/* Success Message */}
-                <Text style={styles.title}>Pembayaran Berhasil!</Text>
+                <Text style={styles.title}>{isHomecare ? 'Booking Berhasil' : 'Pembayaran Berhasil!'}</Text>
                 <Text style={styles.message}>
-                    Terima kasih! Pembayaran Anda telah berhasil diproses.{'\n'}
-                    Appointment Anda sudah dikonfirmasi.
+                    {isHomecare
+                        ? 'Terima kasih! Janji temu Anda telah dikonfirmasi.\nSilakan lakukan pembayaran saat optometris datang.'
+                        : 'Terima kasih! Pembayaran Anda telah berhasil diproses.\nAppointment Anda sudah dikonfirmasi.'
+                    }
                 </Text>
 
                 {/* Info Card */}

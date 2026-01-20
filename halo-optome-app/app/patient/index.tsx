@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { FileText, ChevronRight } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import optometristService, { Optometrist } from '../../services/optometristService';
 import productService, { Product } from '../../services/productService';
@@ -87,7 +88,10 @@ export default function DashboardScreen() {
   const convertToOptometris = (optometrists: Optometrist[]) => {
     return optometrists.map(opt => {
       const base = API_BASE_URL.replace(/\/?api$/, '');
-      let photoUrl = opt.photo ? opt.photo : undefined;
+      // Prefer avatar_url, then photo
+      let rawUrl = opt.avatar_url || opt.photo;
+      let photoUrl = rawUrl ? rawUrl : undefined;
+
       if (photoUrl && !/^https?:\/\//i.test(photoUrl)) {
         photoUrl = base + photoUrl;
       }
@@ -97,7 +101,9 @@ export default function DashboardScreen() {
       return {
         id: opt.id,
         name: opt.name,
-        photo: photoUrl ? { uri: photoUrl } : require('../../assets/images/optometris/itmam.png'),
+        // Pass string URL directly. If undefined, InitialAvatar shows initials.
+        photo: photoUrl,
+        avatar_url: photoUrl,
         rating: opt.rating,
         experience: opt.experience,
         schedule: opt.schedule && opt.schedule.length > 0
@@ -164,6 +170,22 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </LinearGradient>
         )}
+
+        {/* Quick Access: Rekam Medis */}
+        <TouchableOpacity
+          style={styles.quickAccessCard}
+          onPress={() => router.push('/records')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.quickAccessIconWrap}>
+            <FileText size={24} color="#2563EB" />
+          </View>
+          <View style={styles.quickAccessContent}>
+            <Text style={styles.quickAccessTitle}>Riwayat Rekam Medis</Text>
+            <Text style={styles.quickAccessSubtitle}>Lihat hasil konsultasi Anda</Text>
+          </View>
+          <ChevronRight size={20} color="#94a3b8" />
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Optometris Unggulan</Text>
         <OptometrisCarousel
@@ -253,5 +275,42 @@ const styles = StyleSheet.create({
   ctaText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  quickAccessCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  quickAccessIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickAccessContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  quickAccessTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  quickAccessSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
   },
 });

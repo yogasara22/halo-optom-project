@@ -9,11 +9,13 @@ import {
     Platform,
     ActivityIndicator,
     RefreshControl,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import patientService, { Appointment } from '../../services/patientService';
 import { fixImageUrl } from '../../lib/utils';
+import InitialAvatar from '../../components/common/InitialAvatar';
 
 export default function ScheduleScreen() {
     const router = useRouter();
@@ -137,23 +139,19 @@ export default function ScheduleScreen() {
     const renderAppointmentCard = ({ item }: { item: Appointment }) => {
         const statusColor = getStatusColor(item.status);
         const canJoin = canJoinConsultation(item);
+        const isHistory = activeTab === 'history';
+        const isCompleted = item.status === 'completed';
 
-        return (
+        const cardContent = (
             <View style={styles.card}>
                 {/* Header */}
                 <View style={styles.cardHeader}>
-                    {item.optometrist.avatar_url ? (
-                        <Image
-                            source={{ uri: fixImageUrl(item.optometrist.avatar_url) }}
-                            style={styles.avatar}
-                        />
-                    ) : (
-                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>
-                                {item.optometrist.name[0]}
-                            </Text>
-                        </View>
-                    )}
+                    <InitialAvatar
+                        name={item.optometrist.name}
+                        avatarUrl={item.optometrist.avatar_url}
+                        size={50}
+                        style={styles.avatar}
+                    />
 
                     <View style={styles.headerInfo}>
                         <Text style={styles.doctorName}>{item.optometrist.name}</Text>
@@ -240,11 +238,20 @@ export default function ScheduleScreen() {
                             </TouchableOpacity>
                         ) : item.payment_status === 'unpaid' ? (
                             <TouchableOpacity
-                                style={styles.payButton}
-                                onPress={() => router.push(`/appointments/payment?id=${item.id}`)}
+                                style={item.type === 'homecare' ? styles.payButton : styles.payButton}
+                                onPress={() => {
+                                    if (item.type === 'homecare') {
+                                        Alert.alert(
+                                            'Pembayaran Tunai',
+                                            'Silakan lakukan pembayaran tunai saat optometris datang ke lokasi Anda.'
+                                        );
+                                    } else {
+                                        router.push(`/appointments/payment?id=${item.id}`);
+                                    }
+                                }}
                             >
-                                <Ionicons name="card-outline" size={20} color="#fff" />
-                                <Text style={styles.payButtonText}>Bayar Sekarang</Text>
+                                <Ionicons name={item.type === 'homecare' ? 'cash-outline' : 'card-outline'} size={20} color="#fff" />
+                                <Text style={styles.payButtonText}>{item.type === 'homecare' ? 'Bayar Tunai' : 'Bayar Sekarang'}</Text>
                             </TouchableOpacity>
                         ) : (
                             <View style={styles.infoRow}>
@@ -258,6 +265,21 @@ export default function ScheduleScreen() {
                 )}
             </View>
         );
+
+        // Make card clickable in history tab to view details
+        if (isHistory) {
+            return (
+                <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => router.push(`/patient/appointment/${item.id}`)}
+                >
+                    {cardContent}
+                </TouchableOpacity>
+            );
+        }
+
+        return cardContent;
+
     };
 
     if (loading) {
@@ -533,3 +555,5 @@ const styles = StyleSheet.create({
         marginTop: 16,
     },
 });
+
+

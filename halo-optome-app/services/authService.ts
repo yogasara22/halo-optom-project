@@ -28,8 +28,10 @@ class AuthService {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
 
-      // Simpan token ke AsyncStorage
+      // Simpan token, userId, dan role ke AsyncStorage
       await AsyncStorage.setItem('authToken', token);
+      await AsyncStorage.setItem('userId', user.id);
+      await AsyncStorage.setItem('userRole', user.role);
 
       return response.data;
     } catch (error) {
@@ -55,8 +57,10 @@ class AuthService {
       const response = await api.post('/auth/register', requestData);
       const { token, user } = response.data;
 
-      // Simpan token ke AsyncStorage
+      // Simpan token, userId, dan role ke AsyncStorage
       await AsyncStorage.setItem('authToken', token);
+      await AsyncStorage.setItem('userId', user.id);
+      await AsyncStorage.setItem('userRole', user.role);
 
       return response.data;
     } catch (error) {
@@ -67,8 +71,10 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      // Hapus token dari AsyncStorage
+      // Hapus token, userId, dan userRole dari AsyncStorage
       await AsyncStorage.removeItem('authToken');
+      await AsyncStorage.removeItem('userId');
+      await AsyncStorage.removeItem('userRole');
 
       // Opsional: Panggil endpoint logout di backend
       // await api.post('/auth/logout');

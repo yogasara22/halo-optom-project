@@ -22,7 +22,7 @@ const medicalRecordService = {
   // Get all medical records with pagination and filters
   getAllMedicalRecords: async (filters: MedicalRecordFilters = {}): Promise<PaginatedResponse<MedicalRecord>> => {
     const params = new URLSearchParams();
-    
+
     if (filters.page) params.append('page', filters.page.toString());
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.search) params.append('search', filters.search);
@@ -30,7 +30,7 @@ const medicalRecordService = {
     if (filters.endDate) params.append('endDate', filters.endDate);
     if (filters.optometristId) params.append('optometristId', filters.optometristId);
     if (filters.patientId) params.append('patientId', filters.patientId);
-    
+
     const response = await api.get<PaginatedResponse<MedicalRecord>>(`/admin/medical-records?${params}`);
     return response.data;
   },
@@ -63,13 +63,13 @@ const medicalRecordService = {
   downloadExcelReport: async (filters: Omit<MedicalRecordFilters, 'page' | 'limit'> = {}): Promise<Blob> => {
     const params = new URLSearchParams();
     params.append('format', 'excel');
-    
+
     if (filters.search) params.append('search', filters.search);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
     if (filters.optometristId) params.append('optometristId', filters.optometristId);
     if (filters.patientId) params.append('patientId', filters.patientId);
-    
+
     const response = await api.get(`/admin/medical-records/report?${params}`, {
       responseType: 'blob'
     });
@@ -80,13 +80,13 @@ const medicalRecordService = {
   downloadPdfReport: async (filters: Omit<MedicalRecordFilters, 'page' | 'limit'> = {}): Promise<Blob> => {
     const params = new URLSearchParams();
     params.append('format', 'pdf');
-    
+
     if (filters.search) params.append('search', filters.search);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
     if (filters.optometristId) params.append('optometristId', filters.optometristId);
     if (filters.patientId) params.append('patientId', filters.patientId);
-    
+
     const response = await api.get(`/admin/medical-records/report?${params}`, {
       responseType: 'blob'
     });
@@ -97,10 +97,10 @@ const medicalRecordService = {
   downloadPatientReport: async (patientId: string, format: 'pdf' | 'excel' = 'pdf', dateRange?: { startDate: string; endDate: string }): Promise<Blob> => {
     const params = new URLSearchParams();
     params.append('format', format);
-    
+
     if (dateRange?.startDate) params.append('startDate', dateRange.startDate);
     if (dateRange?.endDate) params.append('endDate', dateRange.endDate);
-    
+
     const response = await api.get(`/admin/medical-records/patient/${patientId}/report?${params}`, {
       responseType: 'blob'
     });
@@ -114,8 +114,8 @@ const medicalRecordService = {
   },
 
   // Export a medical record
-  exportMedicalRecord: async (id: string): Promise<Blob> => {
-    const response = await api.get(`/admin/medical-records/${id}/export`, {
+  exportMedicalRecord: async (id: string, format: 'pdf' | 'excel' = 'pdf'): Promise<Blob> => {
+    const response = await api.get(`/admin/medical-records/${id}/export?format=${format}`, {
       responseType: 'blob'
     });
     return response.data;

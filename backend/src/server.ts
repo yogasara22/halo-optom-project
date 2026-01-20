@@ -3,11 +3,14 @@ import 'reflect-metadata';
 import { AppDataSource } from './config/ormconfig';
 import app from './app';
 import { initSocket } from './sockets';
+import { setSocketIO } from './services/notification.service';
 
 const server = http.createServer(app);
 
 // Init socket.io
-initSocket(server);
+// Init socket.io
+const io = initSocket(server);
+setSocketIO(io);
 
 AppDataSource.initialize()
   .then(() => {

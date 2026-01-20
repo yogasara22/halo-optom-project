@@ -5,9 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 interface Props {
     balanceFormatted?: string;
     onPayout?: () => void;
+    onViewHistory?: () => void;
 }
 
-export default function CommissionCard({ balanceFormatted = 'Rp 0', onPayout }: Props) {
+export default function CommissionCard({ balanceFormatted = 'Rp 0', onPayout, onViewHistory }: Props) {
     return (
         <LinearGradient
             colors={['#16a34a', '#15803d']}
@@ -16,13 +17,22 @@ export default function CommissionCard({ balanceFormatted = 'Rp 0', onPayout }: 
             style={styles.card}
         >
             <View style={styles.content}>
-                <View>
+                <View style={styles.leftContent}>
                     <Text style={styles.label}>Saldo Komisi Saat Ini</Text>
                     <Text style={styles.balance}>{balanceFormatted}</Text>
                 </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.buttonContainer}>
                 <TouchableOpacity style={styles.payoutButton} activeOpacity={0.8} onPress={onPayout}>
+                    <Ionicons name="wallet-outline" size={18} color="#16a34a" style={{ marginRight: 6 }} />
                     <Text style={styles.payoutText}>Tarik Saldo</Text>
-                    <Ionicons name="arrow-forward-circle" size={20} color="#16a34a" style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.historyButton} activeOpacity={0.8} onPress={onViewHistory}>
+                    <Ionicons name="time-outline" size={16} color="#dcfce7" />
+                    <Text style={styles.historyText}>Riwayat</Text>
                 </TouchableOpacity>
             </View>
 
@@ -38,7 +48,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 20,
         marginTop: 16,
-        marginBottom: 24,
+        marginBottom: 12,
         position: 'relative',
         overflow: 'hidden',
         elevation: 4,
@@ -48,10 +58,11 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
     },
     content: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         zIndex: 10,
+        marginBottom: 16,
+    },
+    leftContent: {
+        flex: 1,
     },
     label: {
         color: 'rgba(255, 255, 255, 0.9)',
@@ -61,20 +72,44 @@ const styles = StyleSheet.create({
     },
     balance: {
         color: '#fff',
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: '700',
     },
+    buttonContainer: {
+        flexDirection: 'row',
+        gap: 10,
+        zIndex: 10,
+    },
     payoutButton: {
+        flex: 1,
         backgroundColor: '#fff',
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
+        paddingVertical: 12,
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         elevation: 2,
     },
     payoutText: {
         color: '#16a34a',
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    historyButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    historyText: {
+        color: '#dcfce7',
         fontWeight: '600',
         fontSize: 13,
     },

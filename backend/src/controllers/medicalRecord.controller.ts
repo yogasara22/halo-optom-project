@@ -57,20 +57,71 @@ export const createMedicalRecord = async (req: Request, res: Response) => {
 export const getMedicalRecordsByPatient = async (req: Request, res: Response) => {
   try {
     const { patient_id } = req.params;
+    const { appointment_id } = req.query;
     const user = (req as any).user as User;
 
-    // Allow Admin, the Patient themselves, OR an Optometrist
-    if (user.role !== UserRole.Admin && user.role !== UserRole.Optometris && user.id !== String(patient_id)) {
-      return res.status(403).json({ message: 'Tidak diizinkan melihat catatan medis orang lain' });
+    const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
+
+    // If appointment_id is provided, search by appointment
+    if (appointment_id) {
+      const records = await medicalRecordRepo.find({
+        where: { appointment: { id: String(appointment_id) } },
+        relations: ['patient', 'optometrist', 'appointment'],
+        order: { created_at: 'DESC' }
+      });
+
+      // Check authorization - user must be the patient, optometrist, or admin
+      if (records.length > 0) {
+        const record = records[0];
+        if (
+          user.role !== UserRole.Admin &&
+          user.id !== record.patient?.id &&
+          user.id !== record.optometrist?.id
+        ) {
+          return res.status(403).json({ message: 'Tidak diizinkan melihat catatan medis ini' });
+        }
+      }
+
+      return res.json(records);
     }
 
-    const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
-    const records = await medicalRecordRepo.find({
-      where: { patient: { id: String(patient_id) } },
-      order: { created_at: 'DESC' }
-    });
+    // If patient_id is provided (from URL params), search by patient
+    if (patient_id) {
+      // Allow Admin, the Patient themselves, OR an Optometrist
+      if (user.role !== UserRole.Admin && user.role !== UserRole.Optometris && user.id !== String(patient_id)) {
+        return res.status(403).json({ message: 'Tidak diizinkan melihat catatan medis orang lain' });
+      }
 
-    return res.json(records);
+      const records = await medicalRecordRepo.find({
+        where: { patient: { id: String(patient_id) } },
+        relations: ['patient', 'optometrist', 'appointment'],
+        order: { created_at: 'DESC' }
+      });
+
+      return res.json(records);
+    }
+
+    // If user is a patient, return their own records
+    if (user.role === UserRole.Pasien) {
+      const records = await medicalRecordRepo.find({
+        where: { patient: { id: user.id } },
+        relations: ['patient', 'optometrist', 'appointment'],
+        order: { created_at: 'DESC' }
+      });
+      return res.json(records);
+    }
+
+    // If user is an optometrist, return records they created
+    if (user.role === UserRole.Optometris) {
+      const records = await medicalRecordRepo.find({
+        where: { optometrist: { id: user.id } },
+        relations: ['patient', 'optometrist', 'appointment'],
+        order: { created_at: 'DESC' }
+      });
+      return res.json(records);
+    }
+
+    return res.status(400).json({ message: 'Parameter tidak valid' });
   } catch (err) {
     console.error('getMedicalRecordsByPatient error:', err);
     return res.status(500).json({ message: 'Internal server error' });

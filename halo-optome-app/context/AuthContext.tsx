@@ -15,7 +15,7 @@ type User = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string, phone: string, role?: 'PATIENT' | 'OPTOMETRIST' | 'pasien' | 'optometris', str_number?: string) => Promise<boolean>;
 };
@@ -43,15 +43,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loadUser();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<User | null> => {
     try {
       setLoading(true);
       const response = await authService.login(email, password);
       setUser(response.user);
-      return true;
+      return response.user;
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return null;
     } finally {
       setLoading(false);
     }

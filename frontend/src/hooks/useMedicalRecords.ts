@@ -57,7 +57,7 @@ export function useUpdateMedicalRecord() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
       medicalRecordService.updateMedicalRecord(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: medicalRecordKeys.detail(variables.id) });
@@ -89,12 +89,12 @@ export function useDeleteMedicalRecord() {
 
 export function useExportMedicalRecord() {
   return useMutation({
-    mutationFn: (params: { recordId: string; format: string } | { search: string; startDate: string; endDate: string; format: "pdf" | "excel" }) => {
+    mutationFn: (params: { recordId: string; format: 'pdf' | 'excel' } | { search: string; startDate: string; endDate: string; format: "pdf" | "excel" }) => {
       if ('recordId' in params) {
-        return medicalRecordService.exportMedicalRecord(params.recordId);
+        return medicalRecordService.exportMedicalRecord(params.recordId, params.format);
       } else {
         // Untuk ekspor semua rekam medis berdasarkan filter
-        return params.format === 'excel' 
+        return params.format === 'excel'
           ? medicalRecordService.downloadExcelReport(params)
           : medicalRecordService.downloadPdfReport(params);
       }

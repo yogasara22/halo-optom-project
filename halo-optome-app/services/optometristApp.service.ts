@@ -77,6 +77,16 @@ class OptometristAppService {
     const res = await api.patch(`/appointments/${id}/reschedule`, { date, start_time });
     return res.data;
   }
+
+  async getUnreadChatCount(): Promise<number> {
+    try {
+      const res = await api.get('/chats/unread/count');
+      return res.data.count || 0;
+    } catch (e) {
+      console.error('Failed to get unread chat count:', e);
+      return 0;
+    }
+  }
 }
 
 export const optometristAppService = new OptometristAppService();

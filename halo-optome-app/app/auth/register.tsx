@@ -39,8 +39,8 @@ export default function RegisterScreen() {
       if (success) {
         Alert.alert('Registrasi Berhasil', `Akun ${role.toLowerCase()} berhasil dibuat.`);
         // Redirect berdasarkan role
-        if (role === 'OPTOMETRIST') {
-          router.replace('/dashboard-optometris');
+        if (role === 'OPTOMETRIST' || role === 'optometris') {
+          router.replace('/optometrist');
         } else {
           router.replace('/');
         }
@@ -58,9 +58,14 @@ export default function RegisterScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <LinearGradient colors={['#1876B8', '#3DBD61']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* HEADER */}
           <View style={styles.header}>
             <View style={styles.logoWrapper}>
@@ -187,6 +192,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     alignItems: 'center',
+    paddingBottom: 0,
   },
   header: {
     paddingTop: 64,
@@ -219,6 +225,7 @@ const styles = StyleSheet.create({
     padding: 24,
     flex: 1,
     minHeight: 500,
+    paddingBottom: 40,
   },
   cardTitle: {
     fontSize: 20,

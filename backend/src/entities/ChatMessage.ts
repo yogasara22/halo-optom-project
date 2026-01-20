@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   CreateDateColumn,
+  UpdateDateColumn,
   JoinColumn,
 } from 'typeorm';
 import { ChatRoom } from './ChatRoom';
@@ -32,6 +33,12 @@ export class ChatMessage {
   @Column({ type: 'json', nullable: true })
   attachments?: any;
 
+  @Column({ type: 'timestamp', nullable: true })
+  read_at?: Date;
+
   @CreateDateColumn()
   created_at!: Date;
+
+  @UpdateDateColumn()
+  updated_at!: Date;
 }

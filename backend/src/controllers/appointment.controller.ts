@@ -72,11 +72,19 @@ export const getAppointments = async (req: Request, res: Response) => {
 
     let data;
     if (user.role === 'pasien') {
-      data = await appointmentRepo.find({ where: { patient: { id: user.id } } });
+      data = await appointmentRepo.find({
+        where: { patient: { id: user.id } },
+        relations: ['patient', 'optometrist'] // Explicitly load relations to ensure avatar_url is included
+      });
     } else if (user.role === 'optometris') {
-      data = await appointmentRepo.find({ where: { optometrist: { id: user.id } } });
+      data = await appointmentRepo.find({
+        where: { optometrist: { id: user.id } },
+        relations: ['patient', 'optometrist']
+      });
     } else {
-      data = await appointmentRepo.find();
+      data = await appointmentRepo.find({
+        relations: ['patient', 'optometrist']
+      });
     }
 
     return res.json(data);
@@ -93,9 +101,15 @@ export const getNextAppointment = async (req: Request, res: Response) => {
 
     let list: Appointment[] = [];
     if (user.role === 'pasien') {
-      list = await repo.find({ where: { patient: { id: user.id } } });
+      list = await repo.find({
+        where: { patient: { id: user.id } },
+        relations: ['patient', 'optometrist']
+      });
     } else if (user.role === 'optometris') {
-      list = await repo.find({ where: { optometrist: { id: user.id } } });
+      list = await repo.find({
+        where: { optometrist: { id: user.id } },
+        relations: ['patient', 'optometrist']
+      });
     }
 
     const upcoming = list
@@ -106,7 +120,21 @@ export const getNextAppointment = async (req: Request, res: Response) => {
         return ad.getTime() - bd.getTime();
       });
 
-    return res.json(upcoming[0] || null);
+
+    const nextAppointment = upcoming[0] || null;
+
+    // Add chat room_id if it's a chat appointment
+    if (nextAppointment && nextAppointment.method === 'chat' && nextAppointment.chat_room_id) {
+      const response: any = {
+        ...nextAppointment,
+        chat: {
+          room_id: nextAppointment.chat_room_id
+        }
+      };
+      return res.json(response);
+    }
+
+    return res.json(nextAppointment);
   } catch (err) {
     console.error('Error getNextAppointment:', err);
     return res.status(500).json({ message: 'Internal server error' });
@@ -201,6 +229,9 @@ export const getConsultationDetails = async (req: Request, res: Response) => {
         name: appointment.optometrist.name,
         avatar_url: appointment.optometrist.avatar_url,
       },
+      date: appointment.date,
+      start_time: appointment.start_time,
+      end_time: appointment.end_time,
     };
 
     // Add video details if video consultation
@@ -293,6 +324,7 @@ export const rescheduleAppointment = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { date, start_time } = req.body;
     const user = (req as any).user as User;
+    const { notificationService } = require('../services/notification.service');
 
     const appointmentRepo = AppDataSource.getRepository(Appointment);
     const appointment = await appointmentRepo.findOne({
@@ -316,9 +348,101 @@ export const rescheduleAppointment = async (req: Request, res: Response) => {
 
     await appointmentRepo.save(appointment);
 
+    // Notify Patient
+    try {
+      const formattedDate = new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      await notificationService.createNotification(
+        appointment.patient.id,
+        'Jadwal Janji Temu Berubah',
+        `Janji temu Anda telah dijadwalkan ulang oleh optometris menjadi ${formattedDate} pukul ${start_time.slice(0, 5)} WIB.`,
+        'appointment',
+        { appointment_id: appointment.id }
+      );
+    } catch (notifyErr) {
+      console.error('Failed to send notification:', notifyErr);
+    }
+
     return res.json(appointment);
   } catch (err) {
     console.error('Error rescheduleAppointment:', err);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+/**
+ * Complete a consultation (optometrist only)
+ * Updates appointment status to 'completed'
+ */
+export const completeConsultation = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user as User;
+
+    // Only optometrists can complete consultations
+    if (user.role !== 'optometris') {
+      return res.status(403).json({ message: 'Hanya optometris yang dapat mengakhiri konsultasi' });
+    }
+
+    const appointmentRepo = AppDataSource.getRepository(Appointment);
+    const appointment = await appointmentRepo.findOne({
+      where: { id },
+      relations: ['optometrist', 'patient'],
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment tidak ditemukan' });
+    }
+
+    // Verify optometrist owns this appointment
+    if (appointment.optometrist.id !== user.id) {
+      return res.status(403).json({ message: 'Anda  tidak dapat mengakhiri konsultasi ini' });
+    }
+
+    // Check if appointment is in appropriate status
+    if (appointment.status === 'completed') {
+      return res.status(400).json({ message: 'Konsultasi sudah selesai' });
+    }
+
+    if (appointment.status === 'cancelled') {
+      return res.status(400).json({ message: 'Konsultasi sudah dibatalkan' });
+    }
+
+    // Update status to completed
+    appointment.status = 'completed';
+    await appointmentRepo.save(appointment);
+
+    // Add commission to wallet if appointment is paid and has commission
+    if (
+      appointment.payment_status === 'paid' &&
+      appointment.commission_amount &&
+      Number(appointment.commission_amount) > 0
+    ) {
+      try {
+        const { walletService } = require('../services/wallet.service');
+        await walletService.addCommission(
+          appointment.optometrist.id,
+          Number(appointment.commission_amount)
+        );
+      } catch (walletErr) {
+        console.error('Error adding commission to wallet:', walletErr);
+        // Don't fail the completion if wallet update fails
+      }
+    }
+
+    return res.json({
+      message: 'Konsultasi berhasil diakhiri',
+      appointment: {
+        id: appointment.id,
+        status: appointment.status,
+        patient: {
+          id: appointment.patient.id,
+          name: appointment.patient.name,
+        },
+      },
+    });
+  } catch (err) {
+    console.error('Error completeConsultation:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+

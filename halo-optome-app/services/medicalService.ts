@@ -1,6 +1,47 @@
 // services/medicalService.ts
 import api from '../lib/api';
 
+// Interface untuk User yang terkait dengan rekam medis
+export interface UserInfo {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  avatar_url?: string;
+}
+
+// Interface untuk Appointment yang terkait dengan rekam medis
+export interface AppointmentInfo {
+  id: string;
+  scheduled_time: string;
+  status: string;
+}
+
+// Interface untuk rekam medis dari backend
+export interface MedicalRecord {
+  id: string;
+  patient: UserInfo;
+  optometrist: UserInfo;
+  appointment?: AppointmentInfo;
+  diagnosis?: string;
+  prescription?: string;
+  notes?: string;
+  attachments?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+// Legacy interface untuk kompatibilitas dengan optometrist/index.tsx
+export interface MedicalHistory {
+  id: string;
+  patientId: string;
+  date: string;
+  condition: string;
+  treatment?: string;
+  notes?: string;
+}
+
+// Interface untuk resep mata (legacy - jika dibutuhkan nanti)
 export interface Prescription {
   id: string;
   patientId: string;
@@ -24,97 +65,104 @@ export interface Prescription {
   notes?: string;
 }
 
-export interface MedicalHistory {
-  id: string;
-  patientId: string;
-  date: string;
-  condition: string;
-  treatment?: string;
-  notes?: string;
-}
-
 class MedicalService {
-  // Untuk Optometris
+  // ==================== PATIENT METHODS ====================
+
+  /**
+   * Get all medical records for the current logged-in patient
+   * Backend will return records based on auth token
+   */
+  async getMyMedicalRecords(): Promise<MedicalRecord[]> {
+    try {
+      const response = await api.get('/medicalRecords');
+      return response.data;
+    } catch (error) {
+      console.error('Get my medical records error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a single medical record by ID
+   */
+  async getMedicalRecordById(id: string): Promise<MedicalRecord> {
+    try {
+      const response = await api.get(`/medicalRecords/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get medical record by ID error:', error);
+      throw error;
+    }
+  }
+
+  // ==================== OPTOMETRIST METHODS ====================
+
+  /**
+   * Get all medical records created by the current logged-in optometrist
+   * Backend will return records based on auth token and optometrist role
+   */
+  async getOptometristMedicalRecords(): Promise<MedicalRecord[]> {
+    try {
+      const response = await api.get('/medicalRecords');
+      return response.data;
+    } catch (error) {
+      console.error('Get optometrist medical records error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all medical records for a specific patient (used by optometrist)
+   * Returns MedicalHistory format for backward compatibility
+   */
   async getPatientMedicalRecords(patientId: string): Promise<MedicalHistory[]> {
     try {
       const response = await api.get(`/medicalRecords/patient/${patientId}`);
-      return response.data.data;
+      const records: MedicalRecord[] = response.data;
+
+      // Convert to MedicalHistory format for backward compatibility
+      return records.map(record => ({
+        id: record.id,
+        patientId: record.patient?.id || patientId,
+        date: record.created_at,
+        condition: record.diagnosis || 'Tidak ada diagnosis',
+        treatment: record.prescription,
+        notes: record.notes,
+      }));
     } catch (error) {
       console.error('Get patient medical records error:', error);
       throw error;
     }
   }
 
-  async createMedicalRecord(data: {
-    patientId: string;
-    condition: string;
-    treatment?: string;
-    notes?: string;
-  }): Promise<MedicalHistory> {
+  /**
+   * Get medical records by appointment ID
+   */
+  async getMedicalRecordsByAppointment(appointmentId: string): Promise<MedicalRecord[]> {
     try {
-      const response = await api.post('/medical/records', data);
-      return response.data.data;
+      const response = await api.get(`/medicalRecords?appointment_id=${appointmentId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get medical records by appointment error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new medical record (optometrist only)
+   */
+  async createMedicalRecord(data: {
+    appointment_id: string;
+    diagnosis?: string;
+    prescription?: string;
+    notes?: string;
+    attachments?: string;
+  }): Promise<MedicalRecord> {
+    try {
+      const response = await api.post('/medicalRecords', data);
+      return response.data;
     } catch (error) {
       console.error('Create medical record error:', error);
-      throw error;
-    }
-  }
-
-  async createPrescription(data: {
-    patientId: string;
-    rightEye?: {
-      sphere: number;
-      cylinder: number;
-      axis: number;
-      add?: number;
-      pd?: number;
-    };
-    leftEye?: {
-      sphere: number;
-      cylinder: number;
-      axis: number;
-      add?: number;
-      pd?: number;
-    };
-    notes?: string;
-    expiryDate?: string;
-  }): Promise<Prescription> {
-    try {
-      const response = await api.post('/medical/prescriptions', data);
-      return response.data.data;
-    } catch (error) {
-      console.error('Create prescription error:', error);
-      throw error;
-    }
-  }
-
-  // Untuk Pasien
-  async getMyPrescriptions(): Promise<Prescription[]> {
-    try {
-      const response = await api.get('/medical/my-prescriptions');
-      return response.data.data;
-    } catch (error) {
-      console.error('Get my prescriptions error:', error);
-      throw error;
-    }
-  }
-
-  async getLatestPrescription(): Promise<Prescription | null> {
-    try {
-      const response = await api.get('/medical/my-prescriptions/latest');
-      return response.data.data;
-    } catch (error) {
-      console.error('Get latest prescription error:', error);
-      return null;
-    }
-  }
-
-  async getMyMedicalHistory(): Promise<MedicalHistory[]> {
-    try {
-      const response = await api.get('/medical/my-history');
-      return response.data.data;
-    } catch (error) {
-      console.error('Get my medical history error:', error);
       throw error;
     }
   }

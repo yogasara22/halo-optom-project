@@ -1,35 +1,76 @@
-// app/components/optometris/DashboardHeader.tsx
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { API_BASE_URL } from '../../constants/config';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import InitialAvatar from '../common/InitialAvatar';
 
 type DashboardHeaderProps = {
   username: string;
   avatarUrl?: string;
 };
 
+// Helper function to get greeting based on time of day
+const getGreeting = (): string => {
+  const hour = new Date().getHours();
+
+  if (hour >= 6 && hour < 12) {
+    return 'Selamat Pagi!';
+  } else if (hour >= 12 && hour < 18) {
+    return 'Selamat Siang!';
+  } else {
+    return 'Selamat Malam!';
+  }
+};
+
 export default function DashboardHeader({ username, avatarUrl }: DashboardHeaderProps) {
-  const base = API_BASE_URL.replace(/\/?api$/, '');
-  const resolveUri = (url?: string) => {
-    if (!url) return undefined;
-    if (!/^https?:\/\//i.test(url)) return base + url;
-    if (/localhost|127\.0\.0\.1/.test(url)) {
-      return url.replace(/^https?:\/\/[^/]+/, base);
+  const router = useRouter();
+  const greeting = getGreeting();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    fetchUnreadCount();
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      // Use IP address that works for Android Emulator/device 
+      // 10.0.2.2 for emulator, or your machine IP for physical device
+      const API_URL = 'http://10.0.2.2:4000/api';
+
+      const response = await fetch(`${API_URL}/notifications/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.count) setUnreadCount(data.count);
+    } catch (error) {
+      console.log('Failed to fetch unread count', error);
     }
-    return url;
   };
-  const source = resolveUri(avatarUrl)
-    ? { uri: resolveUri(avatarUrl)! }
-    : require('../../assets/images/optometris/itmam.png');
+
   return (
     <View style={styles.header}>
-      <Image source={source} style={styles.avatar} />
+      <InitialAvatar
+        name={username}
+        avatarUrl={avatarUrl}
+        size={44}
+        style={styles.avatar}
+        role="optometrist"
+      />
       <View style={{ flex: 1 }}>
-        <Text style={styles.greeting}>Good morning!</Text>
+        <Text style={styles.greeting}>{greeting}</Text>
         <Text style={styles.username}>{username}</Text>
       </View>
-      <TouchableOpacity>
-        <Ionicons name="notifications-outline" size={24} color="#0f172a" />
+      <TouchableOpacity onPress={() => router.push('/optometrist/notifications')}>
+        <View>
+          <Ionicons name="notifications-outline" size={24} color="#0f172a" />
+          {unreadCount > 0 && (
+            <View style={styles.badge} />
+          )}
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -43,9 +84,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     marginRight: 12,
   },
   greeting: {
@@ -57,4 +95,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0f172a',
   },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ef4444',
+    borderWidth: 2,
+    borderColor: '#fff',
+  }
 });

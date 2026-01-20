@@ -5,6 +5,7 @@ export interface Optometrist {
   id: string;
   name: string;
   photo: string;
+  avatar_url?: string; // Add this field
   rating: number;
   experience: string;
   schedule: {

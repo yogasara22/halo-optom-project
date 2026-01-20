@@ -10,6 +10,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     Image,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,9 +46,11 @@ export default function ChatConsultationScreen() {
     const [inputMessage, setInputMessage] = useState('');
     const [sending, setSending] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
     const [isTyping, setIsTyping] = useState(false);
     const [otherUserTyping, setOtherUserTyping] = useState(false);
     const [imageError, setImageError] = useState(false);
+    const [completing, setCompleting] = useState(false);
 
     useEffect(() => {
         const init = async () => {
@@ -77,7 +80,9 @@ export default function ChatConsultationScreen() {
 
     const loadCurrentUser = async () => {
         const userId = await AsyncStorage.getItem('userId');
+        const userRole = await AsyncStorage.getItem('userRole');
         setCurrentUserId(userId);
+        setCurrentUserRole(userRole);
     };
 
     const loadConsultation = async () => {
@@ -112,7 +117,18 @@ export default function ChatConsultationScreen() {
 
                 // Listen for new messages
                 socket.on('newMessage', (data: ChatMessage) => {
-                    setMessages((prev) => [...prev, data]);
+                    console.log('Received new message:', data.id, 'from:', data.from.name, 'role:', data.from.role);
+
+                    setMessages((prev) => {
+                        // Check if this message already exists
+                        const isDuplicate = prev.some(msg => msg.id === data.id);
+                        if (isDuplicate) {
+                            console.log('Skipping duplicate message:', data.id);
+                            return prev;
+                        }
+                        // Add new message
+                        return [...prev, data];
+                    });
 
                     // Auto scroll to bottom
                     setTimeout(() => {
@@ -130,6 +146,39 @@ export default function ChatConsultationScreen() {
         }
     };
 
+    const markMessagesRead = async () => {
+        if (!consultationDetails?.chat?.room_id) return;
+        try {
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) {
+                console.warn('No auth token found, skipping mark as read');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/chats/${consultationDetails.chat.room_id}/read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                console.log('Messages marked as read successfully');
+            } else {
+                console.error('Failed to mark messages as read:', response.status);
+            }
+        } catch (e) {
+            console.error('Failed to mark messages read:', e);
+        }
+    };
+
+    useEffect(() => {
+        if (consultationDetails?.chat?.room_id) {
+            markMessagesRead();
+        }
+    }, [consultationDetails]);
+
     const handleSendMessage = async () => {
         if (!inputMessage.trim() || !consultationDetails?.chat?.room_id) return;
 
@@ -139,27 +188,13 @@ export default function ChatConsultationScreen() {
             setInputMessage('');
 
             // Send via socket for real-time delivery
+            // The message will be added when we receive it back via socket (with proper role data)
             sendSocketMessage(consultationDetails.chat.room_id, messageText, currentUserId || '');
 
-            // Optimistic UI update
-            const tempMessage: ChatMessage = {
-                id: `temp-${Date.now()}`,
-                room_id: consultationDetails.chat.room_id,
-                from: {
-                    id: currentUserId || '',
-                    name: 'You',
-                },
-                message: messageText,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            };
-
-            setMessages((prev) => [...prev, tempMessage]);
-
-            // Auto scroll
+            // Auto scroll after a short delay to allow socket response
             setTimeout(() => {
                 flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
+            }, 300);
         } catch (e: any) {
             console.error('Send message error:', e);
             setInputMessage(inputMessage); // Restore message on error
@@ -183,6 +218,71 @@ export default function ChatConsultationScreen() {
         }
     };
 
+    const handleEndConsultation = () => {
+        Alert.alert(
+            'Akhiri Konsultasi',
+            'Apakah Anda yakin ingin mengakhiri konsultasi ini? Setelah diakhiri, Anda akan diarahkan untuk mengisi rekam medis pasien.',
+            [
+                {
+                    text: 'Batal',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Akhiri',
+                    style: 'destructive',
+                    onPress: completeConsultation,
+                },
+            ]
+        );
+    };
+
+    const completeConsultation = async () => {
+        try {
+            setCompleting(true);
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) {
+                Alert.alert('Error', 'Tidak ada token autentikasi');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/appointments/${appointmentId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                Alert.alert('Berhasil', data.message, [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Navigate to medical record form
+                            router.push({
+                                pathname: '/optometrist/medicalRecordForm',
+                                params: {
+                                    appointmentId: appointmentId,
+                                    patientId: data.appointment.patient.id,
+                                    patientName: data.appointment.patient.name,
+                                },
+                            });
+                        },
+                    },
+                ]);
+            } else {
+                const errorData = await response.json();
+                Alert.alert('Error', errorData.message || 'Gagal mengakhiri konsultasi');
+            }
+        } catch (e: any) {
+            console.error('Error completing consultation:', e);
+            Alert.alert('Error', 'Terjadi kesalahan saat mengakhiri konsultasi');
+        } finally {
+            setCompleting(false);
+        }
+    };
+
     const formatTime = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleTimeString('id-ID', {
@@ -192,36 +292,69 @@ export default function ChatConsultationScreen() {
     };
 
     const renderMessage = ({ item }: { item: ChatMessage }) => {
+        if (!item || !item.from) {
+            console.warn('Invalid message item:', item);
+            return null;
+        }
+
+        // Position based on role: Patient on LEFT, Optometrist on RIGHT
+        const isOptometrist = item.from.role === 'optometris'; // Indonesian: optometris not optometrist
         const isMyMessage = item.from.id === currentUserId;
 
         return (
             <View
                 style={[
                     styles.messageContainer,
-                    isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer,
+                    isOptometrist ? styles.optometristMessageContainer : styles.patientMessageContainer,
                 ]}
             >
-                {!isMyMessage && (
+                {!isOptometrist && (
                     <View style={styles.avatarContainer}>
                         {item.from.avatar_url ? (
                             <Image source={{ uri: item.from.avatar_url }} style={styles.avatar} />
                         ) : (
                             <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                                <Text style={styles.avatarText}>{item.from.name[0]}</Text>
+                                <Text style={styles.avatarText}>{(item.from.name || '?')[0]}</Text>
                             </View>
                         )}
                     </View>
                 )}
 
-                <View style={[styles.messageBubble, isMyMessage ? styles.myMessage : styles.otherMessage]}>
-                    {!isMyMessage && <Text style={styles.senderName}>{item.from.name}</Text>}
-                    <Text style={[styles.messageText, isMyMessage && styles.myMessageText]}>
+                <View style={[
+                    styles.messageBubble,
+                    isOptometrist ? styles.optometristMessage : styles.patientMessage
+                ]}>
+                    <Text style={[
+                        styles.senderName,
+                        isOptometrist ? styles.optometristName : styles.patientName
+                    ]}>
+                        {isMyMessage ? 'You' : item.from.name}
+                    </Text>
+                    <Text style={[
+                        styles.messageText,
+                        isOptometrist && styles.optometristMessageText
+                    ]}>
                         {item.message}
                     </Text>
-                    <Text style={[styles.messageTime, isMyMessage && styles.myMessageTime]}>
+                    <Text style={[
+                        styles.messageTime,
+                        isOptometrist && styles.optometristMessageTime
+                    ]}>
                         {formatTime(item.created_at)}
                     </Text>
                 </View>
+
+                {isOptometrist && (
+                    <View style={[styles.avatarContainer, { marginLeft: 8, marginRight: 0 }]}>
+                        {item.from.avatar_url ? (
+                            <Image source={{ uri: item.from.avatar_url }} style={styles.avatar} />
+                        ) : (
+                            <View style={[styles.avatar, styles.avatarPlaceholder, styles.optometristAvatar]}>
+                                <Text style={[styles.avatarText, styles.optometristAvatarText]}>{(item.from.name || '?')[0]}</Text>
+                            </View>
+                        )}
+                    </View>
+                )}
             </View>
         );
     };
@@ -275,49 +408,36 @@ export default function ChatConsultationScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.headerInfo}>
-                    {otherUser.avatar_url && !imageError ? (
-                        <Image
-                            source={{
-                                uri: (() => {
-                                    // Helper logic to correct URL
-                                    let url = otherUser.avatar_url || '';
-                                    const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
-
-                                    // If distinct absolute URL (valid http not localhost), return
-                                    if (url.startsWith('http') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
-                                        return url;
-                                    }
-
-                                    // If localhost, replace with actual IP from config
-                                    if (url.includes('localhost') || url.includes('127.0.0.1')) {
-                                        const apiHost = API_BASE_URL.split('://')[1].split(':')[0];
-                                        return url.replace('localhost', apiHost).replace('127.0.0.1', apiHost);
-                                    }
-
-                                    // If relative, prepend base
-                                    return `${baseUrl}/${url.replace(/^\//, '')}`;
-                                })()
-                            }}
-                            style={styles.headerAvatar}
-                            onError={(e) => {
-                                console.log('Avatar load error:', e.nativeEvent.error);
-                                setImageError(true);
-                            }}
-                        />
-                    ) : (
-                        <View style={[styles.headerAvatar, styles.headerAvatarPlaceholder]}>
-                            <Text style={styles.headerAvatarText}>{otherUser.name[0]}</Text>
-                        </View>
-                    )}
                     <View style={styles.headerTextContainer}>
-                        <Text style={styles.headerTitle}>{otherUser.name}</Text>
+                        <Text style={styles.headerTitle}>
+                            {consultationDetails.method === 'video' ? 'Konsultasi Video' : 'Konsultasi Chat'}
+                        </Text>
+                        <Text style={styles.headerSubtitle}>
+                            {consultationDetails?.date && consultationDetails?.start_time ? (
+                                `${otherUser.name} • ${new Date(consultationDetails.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} • ${consultationDetails.start_time.slice(0, 5)}`
+                            ) : otherUser.name}
+                        </Text>
                         {otherUserTyping && <Text style={styles.typingIndicator}>mengetik...</Text>}
                     </View>
                 </View>
 
-                <TouchableOpacity style={styles.headerButton}>
-                    <Ionicons name="information-circle-outline" size={24} color="#1876B8" />
-                </TouchableOpacity>
+                {/* End Consultation Button (Optometrist Only) */}
+                {currentUserRole === 'optometris' && (
+                    <TouchableOpacity
+                        style={styles.endConsultationButton}
+                        onPress={handleEndConsultation}
+                        disabled={completing}
+                    >
+                        {completing ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <>
+                                <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                                <Text style={styles.endButtonText}>Akhiri</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Messages List */}
@@ -418,7 +538,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     headerTextContainer: {
-        marginLeft: 10,
+        marginLeft: 0,
         flex: 1,
     },
     headerTitle: {
@@ -432,6 +552,11 @@ const styles = StyleSheet.create({
         color: '#1876B8',
         fontStyle: 'italic',
         fontWeight: '500',
+    },
+    headerSubtitle: {
+        fontSize: 12,
+        color: '#64748b',
+        marginTop: 1,
     },
     headerButton: {
         padding: 8,
@@ -494,11 +619,13 @@ const styles = StyleSheet.create({
         marginBottom: 12, // Reduced margin for tighter chat feel
         maxWidth: '100%',
     },
-    myMessageContainer: {
-        justifyContent: 'flex-end',
-    },
-    otherMessageContainer: {
+    patientMessageContainer: {
         justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+    },
+    optometristMessageContainer: {
+        justifyContent: 'flex-end',
+        alignItems: 'flex-end',
     },
     avatarContainer: {
         marginRight: 8,
@@ -511,57 +638,72 @@ const styles = StyleSheet.create({
         borderRadius: 14,
     },
     avatarPlaceholder: {
-        backgroundColor: '#eff6ff',
+        backgroundColor: '#BBDEFB',
         justifyContent: 'center',
         alignItems: 'center',
     },
+    optometristAvatar: {
+        backgroundColor: '#A5D6A7',
+    },
     avatarText: {
-        color: '#1876B8',
+        color: '#1976D2',
         fontSize: 12,
         fontWeight: '600',
+    },
+    optometristAvatarText: {
+        color: '#388E3C',
     },
     messageBubble: {
         maxWidth: '80%',
         paddingHorizontal: 14,
         paddingVertical: 10,
         borderRadius: 18,
-        elevation: 1, // Subtle shadow for depth
+        elevation: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 1,
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
     },
-    myMessage: {
-        // Let's stick to a soft Professional Blue for the user
-        backgroundColor: '#E6F4FF',
-        borderBottomRightRadius: 2, // Sharp corner for "speech bubble" effect
-        marginLeft: 40, // Ensure space from left
+    patientMessage: {
+        backgroundColor: '#E3F2FD', // Light Blue for Patient
+        borderBottomLeftRadius: 4,
+        alignSelf: 'flex-start',
     },
-    otherMessage: {
-        backgroundColor: '#ffffff',
-        borderBottomLeftRadius: 2,
-        marginRight: 40,
+    optometristMessage: {
+        backgroundColor: '#C8E6C9', // Light Green for Optometrist
+        borderBottomRightRadius: 4,
+        alignSelf: 'flex-end',
     },
     senderName: {
         fontSize: 11,
         fontWeight: '700',
-        color: '#eab308', // Different color for name
         marginBottom: 2,
+    },
+    patientName: {
+        color: '#1976D2', // Blue for Patient name
+    },
+    optometristName: {
+        color: '#388E3C', // Green for Optometrist name
     },
     messageText: {
         fontSize: 15,
-        color: '#111827',
-        lineHeight: 21,
+        lineHeight: 20,
+        color: '#333',
+    },
+    optometristMessageText: {
+        color: '#1a1a1a',
     },
     myMessageText: {
         color: '#111827',
     },
     messageTime: {
         fontSize: 10,
-        color: '#94a3b8',
-        alignSelf: 'flex-end',
+        color: '#666',
         marginTop: 4,
-        marginLeft: 8,
+        alignSelf: 'flex-end',
+    },
+    optometristMessageTime: {
+        color: '#555',
     },
     myMessageTime: {
         color: '#94a3b8',
@@ -620,5 +762,19 @@ const styles = StyleSheet.create({
         backgroundColor: '#94a3b8',
         elevation: 0,
         shadowOpacity: 0,
+    },
+    endConsultationButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#dc2626',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        gap: 4,
+    },
+    endButtonText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '600',
     },
 });

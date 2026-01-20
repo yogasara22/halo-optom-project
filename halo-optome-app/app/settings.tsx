@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import BottomNavigationBar from '../components/optometrist/BottomNavigationBar';
+import InitialAvatar from '../components/common/InitialAvatar';
 import { useState } from 'react';
 import { API_BASE_URL } from '../constants/config';
 import { toBoolean } from '../utils/boolean';
@@ -22,7 +23,7 @@ export default function SettingsPage() {
             <Ionicons name="chevron-back" size={24} color="#0f172a" />
           </TouchableOpacity>
           <Text style={styles.title}>Profile Setting</Text>
-          <View style={{width:24}} />
+          <View style={{ width: 24 }} />
         </View>
 
         <View style={styles.container}>
@@ -33,10 +34,19 @@ export default function SettingsPage() {
                   {(() => {
                     const base = API_BASE_URL.replace(/\/?api$/, '');
                     let url = (user as any)?.avatar_url;
+                    // Fix URL if needed
                     if (url && !/^https?:\/\//i.test(url)) url = base + url;
                     if (url && /localhost|127\.0\.0\.1/.test(url)) url = url.replace(/^https?:\/\/[^/]+/, base);
-                    const src = url ? { uri: url } : require('../assets/images/avatar.png');
-                    return <Image source={src} style={styles.avatar} />;
+
+                    return (
+                      <InitialAvatar
+                        name={user.name}
+                        avatarUrl={url}
+                        size={56}
+                        style={styles.avatar}
+                        role="patient"
+                      />
+                    );
                   })()}
                 </View>
                 <View>
@@ -50,13 +60,13 @@ export default function SettingsPage() {
               </View>
             </View>
           ) : (
-            <Text style={{color:'#6B7280'}}>Belum login</Text>
+            <Text style={{ color: '#6B7280' }}>Belum login</Text>
           )}
 
           <Text style={styles.sectionTitle}>General</Text>
           <View style={styles.sectionCard}>
             <TouchableOpacity style={styles.itemRow} onPress={() => router.push('/settings/edit-profile')}>
-              <View style={[styles.itemIcon, {backgroundColor:'#EEF2FF'}]}>
+              <View style={[styles.itemIcon, { backgroundColor: '#EEF2FF' }]}>
                 <Ionicons name="person-circle-outline" size={22} color="#6366F1" />
               </View>
               <View style={styles.itemContent}>
@@ -69,7 +79,7 @@ export default function SettingsPage() {
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.itemRow}>
-              <View style={[styles.itemIcon, {backgroundColor:'#EEF2FF'}]}>
+              <View style={[styles.itemIcon, { backgroundColor: '#EEF2FF' }]}>
                 <Ionicons name="lock-closed-outline" size={20} color="#6366F1" />
               </View>
               <View style={styles.itemContent}>
@@ -82,7 +92,7 @@ export default function SettingsPage() {
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.itemRow}>
-              <View style={[styles.itemIcon, {backgroundColor:'#EEF2FF'}]}>
+              <View style={[styles.itemIcon, { backgroundColor: '#EEF2FF' }]}>
                 <Ionicons name="shield-outline" size={20} color="#6366F1" />
               </View>
               <View style={styles.itemContent}>
@@ -95,7 +105,7 @@ export default function SettingsPage() {
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.itemRow}>
-              <View style={[styles.itemIcon, {backgroundColor:'#EEF2FF'}]}>
+              <View style={[styles.itemIcon, { backgroundColor: '#EEF2FF' }]}>
                 <Ionicons name="file-tray-full-outline" size={20} color="#6366F1" />
               </View>
               <View style={styles.itemContent}>
@@ -109,7 +119,7 @@ export default function SettingsPage() {
           <Text style={styles.sectionTitle}>Preferences</Text>
           <View style={styles.sectionCard}>
             <View style={styles.itemRow}>
-              <View style={[styles.itemIcon, {backgroundColor:'#EEF2FF'}]}>
+              <View style={[styles.itemIcon, { backgroundColor: '#EEF2FF' }]}>
                 <Ionicons name="notifications-outline" size={20} color="#6366F1" />
               </View>
               <View style={styles.itemContent}>
@@ -122,7 +132,7 @@ export default function SettingsPage() {
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.itemRow}>
-              <View style={[styles.itemIcon, {backgroundColor:'#EEF2FF'}]}>
+              <View style={[styles.itemIcon, { backgroundColor: '#EEF2FF' }]}>
                 <Ionicons name="help-circle-outline" size={20} color="#6366F1" />
               </View>
               <View style={styles.itemContent}>
@@ -135,12 +145,12 @@ export default function SettingsPage() {
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.logoutRow} onPress={logout}>
-              <View style={[styles.itemIcon, {backgroundColor:'#FEE2E2'}]}>
+              <View style={[styles.itemIcon, { backgroundColor: '#FEE2E2' }]}>
                 <Ionicons name="exit-outline" size={20} color="#EF4444" />
               </View>
               <View style={styles.itemContent}>
-                <Text style={[styles.itemTitle, {color:'#EF4444'}]}>Log Out</Text>
-                <Text style={[styles.itemSubtitle, {color:'#EF4444'}]}>Keluar dari akun</Text>
+                <Text style={[styles.itemTitle, { color: '#EF4444' }]}>Log Out</Text>
+                <Text style={[styles.itemSubtitle, { color: '#EF4444' }]}>Keluar dari akun</Text>
               </View>
             </TouchableOpacity>
           </View>

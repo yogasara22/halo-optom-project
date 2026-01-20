@@ -13,6 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getConsultationDetails, ConsultationDetails } from '../../services/consultationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../constants/config';
 
 // Safe import for VideoSDK to prevent crash in Expo Go
 let MeetingProvider: any = null;
@@ -62,8 +64,9 @@ function ParticipantView({ participantId }: { participantId: string }) {
 }
 
 // Meeting View Component
-function MeetingView({ onLeave }: { onLeave: () => void }) {
+function MeetingView({ onLeave, appointmentId, currentUserRole }: { onLeave: () => void; appointmentId: string; currentUserRole: string | null }) {
     if (!useMeeting) return null;
+    const router = useRouter();
     const { join, leave, toggleMic, toggleWebcam, participants, localParticipant } = useMeeting({
         onMeetingJoined: () => {
             console.log('Meeting joined successfully');
@@ -95,21 +98,78 @@ function MeetingView({ onLeave }: { onLeave: () => void }) {
         setWebcamOn((prev: boolean) => !prev);
     };
 
-    const handleLeave = () => {
-        Alert.alert(
-            'Akhiri Konsultasi?',
-            'Apakah Anda yakin ingin mengakhiri konsultasi video?',
-            [
-                { text: 'Batal', style: 'cancel' },
-                {
-                    text: 'Ya, Akhiri',
-                    style: 'destructive',
-                    onPress: () => {
-                        leave();
+    const handleLeave = async () => {
+        // If optometrist, show completion flow
+        if (currentUserRole === 'optometris') {
+            Alert.alert(
+                'Akhiri Konsultasi?',
+                'Apakah Anda yakin ingin mengakhiri konsultasi video? Anda akan diarahkan untuk mengisi rekam medis.',
+                [
+                    { text: 'Batal', style: 'cancel' },
+                    {
+                        text: 'Ya, Akhiri',
+                        style: 'destructive',
+                        onPress: async () => {
+                            leave();
+                            // Complete consultation and navigate to medical record
+                            await completeAndNavigate();
+                        },
                     },
+                ]
+            );
+        } else {
+            // Patient just leaves
+            Alert.alert(
+                'Akhiri Konsultasi?',
+                'Apakah Anda yakin ingin mengakhiri konsultasi video?',
+                [
+                    { text: 'Batal', style: 'cancel' },
+                    {
+                        text: 'Ya, Akhiri',
+                        style: 'destructive',
+                        onPress: () => {
+                            leave();
+                        },
+                    },
+                ]
+            );
+        }
+    };
+
+    const completeAndNavigate = async () => {
+        try {
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) {
+                Alert.alert('Error', 'Tidak dapat melanjutkan. Silakan login kembali.');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/appointments/${appointmentId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
                 },
-            ]
-        );
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Navigate to medical record form
+                router.replace({
+                    pathname: '/optometrist/medicalRecordForm',
+                    params: {
+                        appointmentId: appointmentId,
+                        patientId: data.appointment.patient.id,
+                        patientName: data.appointment.patient.name,
+                    },
+                });
+            } else {
+                Alert.alert('Error', 'Gagal menyelesaikan konsultasi');
+            }
+        } catch (err) {
+            console.error('Error completing consultation:', err);
+            Alert.alert('Error', 'Terjadi kesalahan saat menyelesaikan konsultasi');
+        }
     };
 
     const participantIds = [...participants.keys()];
@@ -184,8 +244,15 @@ export default function VideoConsultationScreen() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [consultationDetails, setConsultationDetails] = useState<ConsultationDetails | null>(null);
+    const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
     useEffect(() => {
+        // Load user role
+        const loadUserRole = async () => {
+            const role = await AsyncStorage.getItem('userRole');
+            setCurrentUserRole(role);
+        };
+        loadUserRole();
         // If native modules are missing, show error immediately
         if (!MeetingProvider) {
             setLoading(false);
@@ -270,7 +337,7 @@ export default function VideoConsultationScreen() {
             }}
             token={consultationDetails.video.token}
         >
-            <MeetingView onLeave={handleMeetingLeft} />
+            <MeetingView onLeave={handleMeetingLeft} appointmentId={appointmentId} currentUserRole={currentUserRole} />
         </MeetingProvider>
     );
 }

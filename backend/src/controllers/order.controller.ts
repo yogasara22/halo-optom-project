@@ -7,7 +7,7 @@ import { User } from '../entities/User';
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const { items, payment_data } = req.body; 
+    const { items, payment_data, shipping_address } = req.body;
     // items = [{ product_id: string, quantity: number }]
     const user = (req as any).user as User;
 
@@ -43,6 +43,7 @@ export const createOrder = async (req: Request, res: Response) => {
       items: orderItems,
       total,
       payment_data,
+      shipping_address,
       status: 'pending',
     });
 

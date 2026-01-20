@@ -1,14 +1,16 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.middleware';
-import { 
-  createMedicalRecord, 
-  getMedicalRecordsByPatient, 
-  getMedicalRecordDetail 
+import {
+  createMedicalRecord,
+  getMedicalRecordsByPatient,
+  getMedicalRecordDetail
 } from '../controllers/medicalRecord.controller';
 
 const router = Router();
 // Buat catatan medis (hanya optometrist)
 router.post('/', authMiddleware, createMedicalRecord);
+// Query medical records (supports ?appointment_id=xxx)
+router.get('/', authMiddleware, getMedicalRecordsByPatient);
 // Ambil semua catatan medis pasien tertentu
 router.get('/patient/:patient_id', authMiddleware, getMedicalRecordsByPatient);
 // Ambil detail catatan medis berdasarkan ID
