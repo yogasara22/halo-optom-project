@@ -146,7 +146,7 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AppHeader username={user.name} avatarUrl={user.avatar_url} />
-        <SearchBar value={search} onChangeText={setSearch} />
+
 
         <Text style={styles.sectionTitle}>Jadwal Pemeriksaan Berikutnya</Text>
         {isLoading ? (

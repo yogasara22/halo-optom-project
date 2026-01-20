@@ -218,14 +218,8 @@ export default function DashboardScreen() {
     name: nextApt.patient?.name || 'Pasien',
     photo: (() => {
       let url = nextApt.patient?.avatar_url;
-      console.log('👤 Upcoming appointment patient:', {
-        name: nextApt.patient?.name,
-        avatar_url: nextApt.patient?.avatar_url,
-        raw_url: url,
-      });
       if (url && !/^https?:\/\//i.test(url)) url = base + url;
       if (url && /localhost|127\.0\.0\.1/.test(url)) url = url.replace(/^https?:\/\/[^/]+/, base);
-      console.log('🔗 Processed URL:', url);
       return url ? { uri: url } : null;
     })(),
     appointmentDate: new Date(nextApt.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),

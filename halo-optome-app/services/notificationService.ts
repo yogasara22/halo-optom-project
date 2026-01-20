@@ -14,7 +14,7 @@ class NotificationService {
     async getNotifications(): Promise<ApiNotification[]> {
         try {
             const res = await api.get('/notifications');
-            return res.data;
+            return res.data.data;
         } catch (error) {
             console.error('Error fetching notifications:', error);
             return [];

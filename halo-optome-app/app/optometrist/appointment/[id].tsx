@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { optometristAppService, ApiAppointment } from '../../../services/optometristApp.service';
 import { API_BASE_URL } from '../../../constants/config';
 import InitialAvatar from '../../../components/common/InitialAvatar';
@@ -22,6 +23,9 @@ export default function AppointmentDetailScreen() {
     const [timeObj, setTimeObj] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
+
+    // Completion State
+    const [completing, setCompleting] = useState(false);
 
     useEffect(() => {
         fetchDetail();
@@ -83,6 +87,76 @@ export default function AppointmentDetailScreen() {
             Alert.alert('Gagal', 'Tidak dapat menjadwalkan ulang');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEndConsultation = () => {
+        Alert.alert(
+            'Akhiri Konsultasi',
+            'Apakah Anda yakin ingin mengakhiri sesi Homecare ini? Anda akan diarahkan untuk mengisi rekam medis pasien.',
+            [
+                {
+                    text: 'Batal',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Akhiri',
+                    style: 'destructive',
+                    onPress: completeConsultation,
+                },
+            ]
+        );
+    };
+
+    const completeConsultation = async () => {
+        if (!appointment || !appointment.patient) {
+            if (appointment && !appointment.patient) Alert.alert('Error', 'Data pasien tidak valid');
+            return;
+        }
+
+        try {
+            setCompleting(true);
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) {
+                Alert.alert('Error', 'Tidak ada token autentikasi');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/appointments/${appointment.id}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                Alert.alert('Berhasil', 'Konsultasi selesai', [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Navigate to medical record form
+                            router.push({
+                                pathname: '/optometrist/medicalRecordForm',
+                                params: {
+                                    appointmentId: appointment.id,
+                                    patientId: appointment.patient!.id,
+                                    patientName: appointment.patient!.name,
+                                },
+                            });
+                        },
+                    },
+                ]);
+            } else {
+                const errorData = await response.json();
+                Alert.alert('Error', errorData.message || 'Gagal mengakhiri konsultasi');
+            }
+        } catch (e: any) {
+            console.error('Error completing consultation:', e);
+            Alert.alert('Error', 'Terjadi kesalahan saat mengakhiri konsultasi');
+        } finally {
+            setCompleting(false);
         }
     };
 
@@ -193,8 +267,7 @@ export default function AppointmentDetailScreen() {
                                     <Ionicons name="location-outline" size={20} color="#64748b" />
                                     <View style={styles.detailContent}>
                                         <Text style={styles.detailLabel}>Lokasi</Text>
-                                        {/* Assume location is stored in appointment object, if not display placeholder */}
-                                        <Text style={styles.detailValue}>Alam Sutera, Tangerang Selatan</Text>
+                                        <Text style={styles.detailValue}>{appointment.location || '-'}</Text>
                                     </View>
                                 </View>
                             </>
@@ -210,12 +283,27 @@ export default function AppointmentDetailScreen() {
                         </TouchableOpacity>
                     )}
 
+                    {/* Button Akhiri Konsultasi Special for Homecare & Confirmed */}
+                    {appointment.type === 'homecare' && (appointment.status === 'confirmed' || appointment.status === 'ongoing') && (
+                        <TouchableOpacity
+                            style={[styles.btnDanger, completing && styles.btnDisabled]}
+                            onPress={handleEndConsultation}
+                            disabled={completing}
+                        >
+                            {completing ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={styles.btnDangerText}>Akhiri Konsultasi & Isi Rekam Medis</Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
+
                     <TouchableOpacity
-                        style={[styles.btnSecondary, appointment.status === 'confirmed' && styles.btnDisabled]}
-                        onPress={() => appointment.status !== 'confirmed' && setRescheduleModalVisible(true)}
-                        activeOpacity={appointment.status === 'confirmed' ? 1 : 0.7}
+                        style={[styles.btnSecondary, (appointment.status === 'confirmed' || appointment.status === 'ongoing') && styles.btnDisabled]}
+                        onPress={() => (appointment.status !== 'confirmed' && appointment.status !== 'ongoing') && setRescheduleModalVisible(true)}
+                        activeOpacity={(appointment.status === 'confirmed' || appointment.status === 'ongoing') ? 1 : 0.7}
                     >
-                        <Text style={[styles.btnSecondaryText, appointment.status === 'confirmed' && styles.btnDisabledText]}>Jadwalkan Ulang</Text>
+                        <Text style={[styles.btnSecondaryText, (appointment.status === 'confirmed' || appointment.status === 'ongoing') && styles.btnDisabledText]}>Jadwalkan Ulang</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -421,6 +509,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     btnPrimaryText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    btnDanger: {
+        backgroundColor: '#dc2626',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    btnDangerText: {
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 16,

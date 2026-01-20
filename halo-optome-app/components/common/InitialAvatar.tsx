@@ -16,18 +16,13 @@ interface InitialAvatarProps {
 
 // Generate consistent color based on name
 const getColorFromName = (name: string, role?: 'patient' | 'optometrist' | 'other'): string => {
-    console.log('🎨 getColorFromName called:', { name, role });
-
     if (role === 'patient') {
-        console.log('✅ Returning ORANGE for patient');
         return '#ea580c'; // Orange for patient
     }
     if (role === 'optometrist') {
-        console.log('✅ Returning BLUE for optometrist');
         return '#2563EB'; // Blue for optometrist
     }
 
-    console.log('⚠️ No role match, using random color');
     const colors = [
         '#2563EB', // Blue
         '#16a34a', // Green
@@ -91,7 +86,6 @@ export default function InitialAvatar({
                     style as any,
                 ]}
                 onError={() => {
-                    console.log('Image load error for:', resolvedUrl);
                     setImageError(true);
                 }}
             />
@@ -102,13 +96,6 @@ export default function InitialAvatar({
     const initials = getInitials(name);
     const backgroundColor = getColorFromName(name, role);
     const calculatedFontSize = fontSize || size * 0.4;
-
-    console.log('🎨 InitialAvatar rendering initials:', {
-        name,
-        role,
-        initials,
-        backgroundColor,
-    });
 
     return (
         <View

@@ -1,15 +1,21 @@
 // app/components/patients/SearchBar.tsx
-import { View, TextInput, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
+
 
 type SearchBarProps = {
   value: string;
   onChangeText: (text: string) => void;
+  editable?: boolean;
+  onPress?: () => void;
+  autoFocus?: boolean;
 };
 
-export default function SearchBar({ value, onChangeText }: SearchBarProps) {
+export default function SearchBar({ value, onChangeText, editable = true, onPress, autoFocus = false }: SearchBarProps) {
+  const Container = onPress ? TouchableOpacity : View;
+
   return (
-    <View style={styles.searchBar}>
+    <Container style={styles.searchBar} onPress={onPress} activeOpacity={0.9}>
       <Feather name="search" size={20} color="#94a3b8" />
       <TextInput
         placeholder="Cari layanan atau optometris"
@@ -17,9 +23,13 @@ export default function SearchBar({ value, onChangeText }: SearchBarProps) {
         value={value}
         onChangeText={onChangeText}
         style={styles.searchInput}
+        editable={editable}
+        autoFocus={autoFocus}
+        // If not editable, we want to ignore touch events on the input itself so the parent TouchableOpacity takes over
+        pointerEvents={editable ? 'auto' : 'none'}
       />
       <Ionicons name="mic-outline" size={20} color="#94a3b8" />
-    </View>
+    </Container>
   );
 }
 

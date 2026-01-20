@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { optometristAppService, ApiAppointment } from '../../../services/optometristApp.service';
 import { API_BASE_URL } from '../../../constants/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import InitialAvatar from '../../../components/common/InitialAvatar';
 
 interface MedicalRecord {
     id: string;
@@ -144,9 +145,11 @@ export default function PatientHistoryDetailScreen() {
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Patient Card */}
                 <View style={styles.patientCard}>
-                    <Image
-                        source={avatarUrl ? { uri: avatarUrl } : require('../../../assets/images/avatar.png')}
-                        style={styles.avatar}
+                    <InitialAvatar
+                        name={appointment.patient?.name || 'Pasien'}
+                        avatarUrl={avatarUrl}
+                        size={64}
+                        role="patient"
                     />
                     <View style={styles.patientInfo}>
                         <Text style={styles.patientName}>{appointment.patient?.name || 'Pasien'}</Text>

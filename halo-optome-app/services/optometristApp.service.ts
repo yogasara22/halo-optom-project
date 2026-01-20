@@ -8,6 +8,7 @@ export interface ApiAppointment {
   status: 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled';
   type: 'online' | 'homecare';
   method?: 'chat' | 'video';
+  location?: string;
   patient?: { id: string; name: string; avatar_url?: string };
   optometrist?: { id: string; name: string; avatar_url?: string };
 }
