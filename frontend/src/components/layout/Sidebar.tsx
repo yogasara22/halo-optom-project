@@ -16,6 +16,8 @@ import {
   DocumentArrowDownIcon,
   BanknotesIcon,
   ArrowPathIcon,
+  BuildingLibraryIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -25,6 +27,8 @@ const navigation = [
   { name: 'Rekam Medis', href: '/dashboard/medical-records', icon: DocumentTextIcon },
   { name: 'Manajemen Produk', href: '/dashboard/products', icon: ShoppingBagIcon },
   { name: 'Manajemen Transaksi', href: '/dashboard/transactions', icon: CreditCardIcon },
+  { name: 'Rekening Bank', href: '/dashboard/bank-accounts', icon: BuildingLibraryIcon },
+  { name: 'Review Pembayaran', href: '/dashboard/payment-review', icon: CheckCircleIcon },
   { name: 'Penarikan Dana', href: '/dashboard/withdraw-requests', icon: ArrowPathIcon },
   { name: 'Manajemen Layanan', href: '/dashboard/services', icon: BanknotesIcon },
   { name: 'Review & Feedback', href: '/dashboard/reviews', icon: StarIcon },

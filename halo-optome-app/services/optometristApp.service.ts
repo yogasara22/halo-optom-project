@@ -31,7 +31,7 @@ class OptometristAppService {
     const list = await this.getMyAppointments();
     // Sort upcoming by date/time and filter by status not cancelled/completed
     const upcoming = list
-      .filter(a => !['cancelled', 'completed'].includes(a.status))
+      .filter(a => !['cancelled', 'completed', 'pending'].includes(a.status))
       .sort((a, b) => {
         const ad = new Date(`${a.date}T${a.start_time}`);
         const bd = new Date(`${b.date}T${b.start_time}`);

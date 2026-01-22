@@ -125,15 +125,23 @@ export default function ScheduleScreen() {
             return [];
         }
 
+        let filtered;
         if (activeTab === 'active') {
-            return appointments.filter(
+            filtered = appointments.filter(
                 (apt) => apt.status !== 'completed' && apt.status !== 'cancelled'
             );
         } else {
-            return appointments.filter(
+            filtered = appointments.filter(
                 (apt) => apt.status === 'completed' || apt.status === 'cancelled'
             );
         }
+
+        // Remove duplicates based on appointment ID
+        const uniqueAppointments = filtered.filter((apt, index, self) =>
+            index === self.findIndex((a) => a.id === apt.id)
+        );
+
+        return uniqueAppointments;
     };
 
     const renderAppointmentCard = ({ item }: { item: Appointment }) => {
@@ -236,6 +244,13 @@ export default function ScheduleScreen() {
                                     Join {item.method === 'video' ? 'Video' : 'Chat'}
                                 </Text>
                             </TouchableOpacity>
+                        ) : (item.payment?.status === 'waiting_verification' || item.payment_status === 'waiting_verification') ? (
+                            <View style={styles.verificationBadge}>
+                                <Ionicons name="time-outline" size={18} color="#f59e0b" />
+                                <Text style={styles.verificationText}>
+                                    Menunggu Verifikasi Admin
+                                </Text>
+                            </View>
                         ) : item.payment_status === 'unpaid' ? (
                             <TouchableOpacity
                                 style={item.type === 'homecare' ? styles.payButton : styles.payButton}
@@ -544,6 +559,23 @@ const styles = StyleSheet.create({
     infoText: {
         fontSize: 13,
         color: '#64748b',
+    },
+    verificationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        backgroundColor: '#fef3c7',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#fbbf24',
+    },
+    verificationText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#f59e0b',
     },
     emptyContainer: {
         padding: 40,

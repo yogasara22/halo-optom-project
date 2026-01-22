@@ -73,6 +73,18 @@ class OptometristService {
       throw error;
     }
   }
+
+  async getUpcomingDates(optometristId: string): Promise<{ date: string; day: string; time: string; schedule_id: string }[]> {
+    try {
+      const response = await api.get('/schedules/available-dates', {
+        params: { optometrist_id: optometristId }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Get upcoming dates error:', error);
+      return [];
+    }
+  }
 }
 
 export const optometristService = new OptometristService();

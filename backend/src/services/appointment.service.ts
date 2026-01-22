@@ -30,11 +30,14 @@ export async function updateAppointmentStatus(
   let commissionAmount = 0;
 
   // Cek perubahan payment_status
+  // Cek perubahan payment_status (untuk komisi)
   if (
     payload.payment_status &&
     payload.payment_status === 'paid' &&
     appointment.payment_status !== 'paid'
   ) {
+    console.log(`[updateAppointmentStatus] Payment status changed to paid for appt ${appointmentId}.`);
+
     // Hitung komisi optometris untuk appointment konsultasi
     const basePrice = Number(appointment.price || 0);
     const percentage = Number(appointment.commission_percentage || 0);
@@ -43,12 +46,22 @@ export async function updateAppointmentStatus(
       appointment.commission_amount = commissionAmount as any;
       appointment.commission_calculated_at = new Date();
     }
+  } else {
+    // console.log(`[updateAppointmentStatus] No payment transition or already paid.`);
+  }
+
+  // Ensure rooms exist if payment is paid (Idempotent logic)
+  const isPaid = (payload.payment_status === 'paid') || (appointment.payment_status === 'paid');
+
+  if (isPaid) {
     // Jika metode video → bikin room
     if (appointment.method === 'video' && !appointment.video_room_id) {
+      console.log(`[updateAppointmentStatus] Creating video room (isPaid=true)`);
       shouldCreateRoom = true;
     }
     // Jika metode chat → bikin chat room
     if (appointment.method === 'chat' && !appointment.chat_room_id) {
+      console.log(`[updateAppointmentStatus] Creating chat room (isPaid=true)`);
       shouldCreateChatRoom = true;
     }
   }
@@ -95,6 +108,7 @@ export function generateAppointmentExternalId(appointmentId: string): string {
  * Create chat room untuk appointment
  */
 export async function createAppointmentChatRoom(appointmentId: string): Promise<string> {
+  console.log(`[createAppointmentChatRoom] Starting for appointment ${appointmentId}`);
   const appointmentRepo = AppDataSource.getRepository(Appointment);
   const appointment = await appointmentRepo.findOne({
     where: { id: appointmentId },

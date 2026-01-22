@@ -3,6 +3,7 @@ import {
   createSchedule,
   bulkCreateSchedules,
   getSchedules,
+  getAvailableDates,
   getScheduleById,
   updateSchedule,
   deleteSchedule
@@ -19,6 +20,9 @@ router.post('/', createSchedule);
 
 // Bulk create weekly schedules
 router.post('/bulk', bulkCreateSchedules);
+
+// Get available specific dates
+router.get('/available-dates', getAvailableDates);
 
 // Get schedules (dengan optional filter optometrist_id & day_of_week)
 router.get('/', getSchedules);

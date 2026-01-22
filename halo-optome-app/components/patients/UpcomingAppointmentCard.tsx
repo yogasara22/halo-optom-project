@@ -97,6 +97,24 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
   // Determine button label and icon
   const getActionButton = () => {
     if (appointment.payment_status === 'unpaid') {
+
+      // Check if payment is waiting verification
+      if (appointment.payment?.status === 'waiting_verification') {
+        return {
+          label: 'Menunggu Verifikasi',
+          icon: 'time-outline' as const,
+          onPress: () => {
+            Alert.alert(
+              'Menunggu Verifikasi',
+              'Pembayaran Anda sedang diverifikasi oleh admin. Mohon tunggu maksimal 1x24 jam.'
+            );
+          },
+          disabled: true,
+          style: { backgroundColor: '#fcd34d' }, // Yellow/Amber
+          textStyle: { color: '#78350f' }
+        };
+      }
+
       if (appointment.type === 'homecare') {
         return {
           label: 'Bayar Tunai',
@@ -185,12 +203,14 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
             style={[
               styles.btnFilled,
               styles.btnFullWidth,
-              appointment.payment_status === 'unpaid' && styles.btnPayment
+              appointment.payment_status === 'unpaid' && styles.btnPayment,
+              (actionButton as any).style
             ]}
             onPress={actionButton.onPress}
+            disabled={(actionButton as any).disabled}
           >
-            <Ionicons name={actionButton.icon} size={16} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.btnTextFilled}>{actionButton.label}</Text>
+            <Ionicons name={actionButton.icon} size={16} color={(actionButton as any).textStyle?.color || "#fff"} style={{ marginRight: 6 }} />
+            <Text style={[styles.btnTextFilled, (actionButton as any).textStyle]}>{actionButton.label}</Text>
             {/* Badge for unread messages on Chat button */}
             {actionButton.label === 'Chat' && unreadCount > 0 && (
               <View style={styles.badge}>

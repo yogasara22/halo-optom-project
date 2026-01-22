@@ -40,3 +40,15 @@ export const authorize = (roles: string[]) => {
     next();
   };
 };
+
+// Admin middleware - checks if user is admin
+export const adminMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden: Admin access required' });
+  }
+  next();
+};
+

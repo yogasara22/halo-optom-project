@@ -117,22 +117,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </LinearGradient>
 
-            <View style={styles.divider}>
-              <View style={styles.line} />
-              <Text style={styles.dividerText}>atau masuk dengan</Text>
-              <View style={styles.line} />
-            </View>
 
-            <View style={styles.socialRow}>
-              <TouchableOpacity style={styles.socialButton}>
-                <AntDesign name="google" size={20} color="#EA4335" />
-                <Text style={styles.socialText}>Google</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}>
-                <FontAwesome name="facebook" size={20} color="#1877F2" />
-                <Text style={styles.socialText}>Facebook</Text>
-              </TouchableOpacity>
-            </View>
 
             <TouchableOpacity onPress={() => router.replace('/auth/register')}>
               <Text style={styles.signupText}>

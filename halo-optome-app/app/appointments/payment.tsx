@@ -1,31 +1,32 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, BackHandler } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, BackHandler, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { createPaymentInvoice, PaymentInvoice } from '../../services/paymentService';
+import PaymentMethodSelector, { PaymentMethod } from '../../components/payment/PaymentMethodSelector';
 
 export default function PaymentScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const appointmentId = params.id as string;
+    const appointmentAmount = params.amount as string;
     const webViewRef = useRef<WebView>(null);
 
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [paymentData, setPaymentData] = useState<PaymentInvoice | null>(null);
     const [webViewLoading, setWebViewLoading] = useState(false);
     const [showWebView, setShowWebView] = useState(false);
+    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('bank_transfer');
+    const [showMethodSelection, setShowMethodSelection] = useState(true);
 
     useEffect(() => {
         if (!appointmentId) {
             setError('ID Appointment tidak ditemukan');
-            setLoading(false);
             return;
         }
-
-        loadPaymentInvoice();
     }, [appointmentId]);
 
     // Handle hardware back button
@@ -41,12 +42,29 @@ export default function PaymentScreen() {
         return () => backHandler.remove();
     }, [showWebView]);
 
+    const handleProceedToPayment = () => {
+        if (selectedMethod === 'bank_transfer') {
+            // Redirect to bank transfer screen
+            router.push({
+                pathname: '/payments/bank-transfer',
+                params: {
+                    id: appointmentId,
+                    amount: appointmentAmount
+                }
+            });
+        } else {
+            // Load payment gateway (Xendit)
+            loadPaymentInvoice();
+        }
+    };
+
     const loadPaymentInvoice = async () => {
         try {
             setLoading(true);
             setError(null);
             const invoice = await createPaymentInvoice(appointmentId);
             setPaymentData(invoice);
+            setShowMethodSelection(false);
         } catch (e: any) {
             setError(e?.message || 'Gagal memuat data pembayaran');
         } finally {
@@ -200,11 +218,47 @@ export default function PaymentScreen() {
         );
     }
 
-    if (!paymentData) {
+    if (!paymentData && !showMethodSelection) {
         return null;
     }
 
-    const appointment = paymentData.appointment;
+    // Show payment method selection first
+    if (showMethodSelection) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color="#0f172a" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Pilih Metode Pembayaran</Text>
+                    <View style={{ width: 24 }} />
+                </View>
+
+                <ScrollView style={styles.content}>
+                    <PaymentMethodSelector
+                        selectedMethod={selectedMethod}
+                        onMethodChange={setSelectedMethod}
+                    />
+
+                    {appointmentAmount && (
+                        <View style={styles.amountSummary}>
+                            <Text style={styles.amountLabel}>Total Pembayaran</Text>
+                            <Text style={styles.amountValue}>{formatCurrency(parseFloat(appointmentAmount))}</Text>
+                        </View>
+                    )}
+                </ScrollView>
+
+                <View style={styles.footer}>
+                    <TouchableOpacity onPress={handleProceedToPayment} style={styles.payButton}>
+                        <Text style={styles.payButtonText}>Lanjutkan</Text>
+                        <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    const appointment = paymentData?.appointment;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -258,7 +312,7 @@ export default function PaymentScreen() {
 
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Total Pembayaran</Text>
-                        <Text style={styles.totalValue}>{formatCurrency(paymentData.amount)}</Text>
+                        <Text style={styles.totalValue}>{formatCurrency(paymentData?.amount || 0)}</Text>
                     </View>
                 </View>
 
@@ -278,7 +332,7 @@ export default function PaymentScreen() {
                     <View style={styles.infoTextContainer}>
                         <Text style={styles.infoTitle}>Waktu Terbatas</Text>
                         <Text style={styles.infoText}>
-                            Invoice berlaku hingga {new Date(paymentData.expiry_date).toLocaleString('id-ID')}
+                            Invoice berlaku hingga {paymentData?.expiry_date ? new Date(paymentData.expiry_date).toLocaleString('id-ID') : 'Loading...'}
                         </Text>
                     </View>
                 </View>
@@ -513,5 +567,28 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: '700',
+    },
+    amountSummary: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 20,
+        marginHorizontal: 16,
+        marginTop: 16,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    amountLabel: {
+        fontSize: 14,
+        color: '#64748b',
+        marginBottom: 8,
+    },
+    amountValue: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: '#1876B8',
     },
 });

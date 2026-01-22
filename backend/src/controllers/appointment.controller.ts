@@ -74,16 +74,16 @@ export const getAppointments = async (req: Request, res: Response) => {
     if (user.role === 'pasien') {
       data = await appointmentRepo.find({
         where: { patient: { id: user.id } },
-        relations: ['patient', 'optometrist'] // Explicitly load relations to ensure avatar_url is included
+        relations: ['patient', 'optometrist', 'payment'] // Explicitly load relations to ensure avatar_url is included
       });
     } else if (user.role === 'optometris') {
       data = await appointmentRepo.find({
         where: { optometrist: { id: user.id } },
-        relations: ['patient', 'optometrist']
+        relations: ['patient', 'optometrist', 'payment']
       });
     } else {
       data = await appointmentRepo.find({
-        relations: ['patient', 'optometrist']
+        relations: ['patient', 'optometrist', 'payment']
       });
     }
 
@@ -103,17 +103,37 @@ export const getNextAppointment = async (req: Request, res: Response) => {
     if (user.role === 'pasien') {
       list = await repo.find({
         where: { patient: { id: user.id } },
-        relations: ['patient', 'optometrist']
+        relations: ['patient', 'optometrist', 'payment']
       });
     } else if (user.role === 'optometris') {
       list = await repo.find({
         where: { optometrist: { id: user.id } },
-        relations: ['patient', 'optometrist']
+        relations: ['patient', 'optometrist', 'payment']
       });
     }
 
+    // Filter untuk menghilangkan appointment yang cancelled, completed, atau payment unpaid
     const upcoming = list
-      .filter(a => a.status !== 'cancelled' && a.status !== 'completed')
+      .filter(a => {
+        // Exclude cancelled, completed, and pending
+        if (a.status === 'cancelled' || a.status === 'completed' || a.status === 'pending') {
+          return false;
+        }
+
+        // Only show confirmed or ongoing
+        if (a.status !== 'confirmed' && a.status !== 'ongoing') {
+          return false;
+        }
+
+        // Only show paid appointments (payment successful)
+        // Unpaid appointments should not show until payment is completed
+        const paymentStatus = a.payment_status as string;
+        if (paymentStatus !== 'paid') {
+          return false;
+        }
+
+        return true;
+      })
       .sort((a, b) => {
         const ad = new Date(`${a.date}T${a.start_time}`);
         const bd = new Date(`${b.date}T${b.start_time}`);
@@ -189,6 +209,43 @@ export const createAppointmentPayment = async (req: Request, res: Response) => {
   }
 };
 
+export const createAppointmentBankTransferPayment = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; // appointment_id
+    const repo = AppDataSource.getRepository(Appointment);
+
+    // Find appointment
+    const appointment = await repo.findOne({
+      where: { id },
+      relations: ['patient', 'optometrist']
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    // Import createBankTransferPayment from payment service
+    const paymentService = require('../services/payment.service');
+
+    // Create bank transfer payment
+    const payment = await paymentService.createBankTransferPayment({
+      payment_type: 'appointment',
+      appointment_id: id,
+      amount: appointment.price,
+    });
+
+    return res.status(200).json({
+      message: 'Bank transfer payment created successfully',
+      data: payment,
+    });
+  } catch (err: any) {
+    console.error('Error createAppointmentBankTransferPayment:', err);
+    return res.status(500).json({
+      message: err.message || 'Internal server error',
+      error: err.toString()
+    });
+  }
+};
 export const getConsultationDetails = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -309,10 +366,54 @@ export const updateAppointmentStatus = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Hanya optometris yang dapat mengubah status appointment' });
     }
 
+    const oldStatus = appointment.status;
     appointment.status = status;
     await appointmentRepo.save(appointment);
 
-    return res.json(appointment);
+    // Send notification to patient
+    if (status !== oldStatus) {
+      try {
+        const { notificationService } = require('../services/notification.service');
+        let title = '';
+        let message = '';
+
+        switch (status) {
+          case 'confirmed':
+            title = 'Janji Temu Disetujui';
+            message = `Janji temu Anda dengan Dr. ${appointment.optometrist.name} telah disetujui.`;
+            break;
+          case 'completed':
+            title = 'Konsultasi Selesai';
+            message = `Konsultasi Anda dengan Dr. ${appointment.optometrist.name} telah selesai.`;
+            break;
+          case 'cancelled':
+            title = 'Janji Temu Dibatalkan';
+            message = `Janji temu Anda dengan Dr. ${appointment.optometrist.name} telah dibatalkan.`;
+            break;
+        }
+
+        if (title && message) {
+          // We need patient ID, but relation might not be loaded in previous query
+          // Fetch complete appointment with patient
+          const fullAppointment = await appointmentRepo.findOne({
+            where: { id },
+            relations: ['patient']
+          });
+
+          if (fullAppointment && fullAppointment.patient) {
+            await notificationService.createNotification(
+              fullAppointment.patient.id,
+              title,
+              message,
+              'appointment',
+              { appointment_id: appointment.id }
+            );
+          }
+        }
+      } catch (notifyErr) {
+        console.error('Failed to send status update notification:', notifyErr);
+      }
+    }
   } catch (err) {
     console.error('Error updateAppointmentStatus:', err);
     return res.status(500).json({ message: 'Internal server error' });
@@ -411,23 +512,8 @@ export const completeConsultation = async (req: Request, res: Response) => {
     appointment.status = 'completed';
     await appointmentRepo.save(appointment);
 
-    // Add commission to wallet if appointment is paid and has commission
-    if (
-      appointment.payment_status === 'paid' &&
-      appointment.commission_amount &&
-      Number(appointment.commission_amount) > 0
-    ) {
-      try {
-        const { walletService } = require('../services/wallet.service');
-        await walletService.addCommission(
-          appointment.optometrist.id,
-          Number(appointment.commission_amount)
-        );
-      } catch (walletErr) {
-        console.error('Error adding commission to wallet:', walletErr);
-        // Don't fail the completion if wallet update fails
-      }
-    }
+    // Commission is now added immediately when payment is paid (in updateAppointmentStatus)
+    // So we don't need to add it here again to avoid double crediting.
 
     return res.json({
       message: 'Konsultasi berhasil diakhiri',
@@ -445,4 +531,5 @@ export const completeConsultation = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 

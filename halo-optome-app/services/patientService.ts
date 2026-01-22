@@ -21,7 +21,7 @@ export interface Appointment {
   start_time: string;
   end_time?: string;
   status: 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled';
-  payment_status: 'unpaid' | 'paid';
+  payment_status: 'unpaid' | 'paid' | 'waiting_verification';
   type: 'online' | 'homecare';
   method?: 'chat' | 'video';
   location?: string;
@@ -36,6 +36,11 @@ export interface Appointment {
   };
   chat?: {
     room_id: string;
+  };
+  payment?: {
+    id: string;
+    status: 'pending' | 'paid' | 'expired' | 'failed' | 'waiting_verification' | 'rejected';
+    payment_method: string;
   };
 }
 

@@ -29,22 +29,22 @@ export const createSchedule = async (req: Request, res: Response) => {
 
     // Tentukan optometrist yang akan dibuatkan jadwal
     let targetOptometrist: User;
-    
+
     if (user.role === UserRole.Admin) {
       // Admin bisa membuat jadwal untuk optometris lain
       if (!optometrist_id) {
         return res.status(400).json({ message: 'optometrist_id harus diisi untuk admin' });
       }
-      
+
       const userRepo = AppDataSource.getRepository(User);
       const optometrist = await userRepo.findOne({
         where: { id: optometrist_id, role: UserRole.Optometris }
       });
-      
+
       if (!optometrist) {
         return res.status(404).json({ message: 'Optometris tidak ditemukan' });
       }
-      
+
       targetOptometrist = optometrist;
     } else if (user.role === UserRole.Optometris) {
       // Optometris hanya bisa membuat jadwal untuk dirinya sendiri
@@ -141,7 +141,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
     });
 
     if (!schedule) return res.status(404).json({ message: 'Jadwal tidak ditemukan' });
-    
+
     // Admin dapat mengubah jadwal siapa saja, optometris hanya bisa mengubah jadwal sendiri
     if (user.role !== UserRole.Admin && schedule.optometrist.id !== user.id) {
       return res.status(403).json({ message: 'Tidak bisa mengubah jadwal orang lain' });
@@ -191,7 +191,7 @@ export const deleteSchedule = async (req: Request, res: Response) => {
     });
 
     if (!schedule) return res.status(404).json({ message: 'Jadwal tidak ditemukan' });
-    
+
     // Admin dapat menghapus jadwal siapa saja, optometris hanya bisa menghapus jadwal sendiri
     if (user.role !== UserRole.Admin && schedule.optometrist.id !== user.id) {
       return res.status(403).json({ message: 'Tidak bisa menghapus jadwal orang lain' });
@@ -212,22 +212,22 @@ export const bulkCreateSchedules = async (req: Request, res: Response) => {
 
     // Tentukan optometrist yang akan dibuatkan jadwal
     let targetOptometrist: User;
-    
+
     if (user.role === UserRole.Admin) {
       // Admin bisa membuat jadwal untuk optometris lain
       if (!optometrist_id) {
         return res.status(400).json({ message: 'optometrist_id harus diisi untuk admin' });
       }
-      
+
       const userRepo = AppDataSource.getRepository(User);
       const optometrist = await userRepo.findOne({
         where: { id: optometrist_id, role: UserRole.Optometris }
       });
-      
+
       if (!optometrist) {
         return res.status(404).json({ message: 'Optometris tidak ditemukan' });
       }
-      
+
       targetOptometrist = optometrist;
     } else if (user.role === UserRole.Optometris) {
       // Optometris hanya bisa membuat jadwal untuk dirinya sendiri
@@ -277,6 +277,63 @@ export const bulkCreateSchedules = async (req: Request, res: Response) => {
       message: 'Jadwal mingguan berhasil dibuat',
       schedules: newSchedules
     });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getAvailableDates = async (req: Request, res: Response) => {
+  try {
+    const { optometrist_id } = req.query;
+
+    if (!optometrist_id) {
+      return res.status(400).json({ message: 'optometrist_id is required' });
+    }
+
+    const scheduleRepo = AppDataSource.getRepository(Schedule);
+    const schedules = await scheduleRepo.find({
+      where: { optometrist: { id: optometrist_id as string }, is_active: true }
+    });
+
+    if (schedules.length === 0) {
+      return res.json([]);
+    }
+
+    // Generate dates for the next 30 days
+    const dates: { date: string; day: string; time: string; schedule_id: string }[] = [];
+    const today = new Date();
+    const daysMap: { [key: string]: number } = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+
+      const dayIdx = d.getDay();
+      const foundSchedules = schedules.filter(s => daysMap[s.day_of_week.toLowerCase()] === dayIdx);
+
+      for (const schedule of foundSchedules) {
+        dates.push({
+          date: d.toISOString().split('T')[0], // YYYY-MM-DD
+          day: schedule.day_of_week,
+          time: `${schedule.start_time} - ${schedule.end_time}`,
+          schedule_id: schedule.id
+        });
+      }
+    }
+
+    // Sort by date
+    dates.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return res.json(dates);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Internal server error' });

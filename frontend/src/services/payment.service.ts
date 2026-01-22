@@ -53,3 +53,35 @@ export const exportPaymentReport = async (filter?: PaymentFilter): Promise<Blob>
 
   return response.data;
 };
+
+/**
+ * Upload payment proof for bank transfer
+ */
+export const uploadPaymentProof = async (paymentId: string, proofUrl: string) => {
+  const response = await api.post(`/payments/${paymentId}/proof`, { proof_url: proofUrl });
+  return response.data;
+};
+
+/**
+ * Verify payment (Admin only)
+ */
+export const verifyPayment = async (paymentId: string) => {
+  const response = await api.patch(`/payments/${paymentId}/verify`);
+  return response.data;
+};
+
+/**
+ * Reject payment (Admin only)
+ */
+export const rejectPayment = async (paymentId: string, reason: string) => {
+  const response = await api.patch(`/payments/${paymentId}/reject`, { reason });
+  return response.data;
+};
+
+/**
+ * Get pending bank transfer payments (Admin only)
+ */
+export const getPendingPayments = async () => {
+  const response = await api.get('/payments/pending');
+  return response.data;
+};

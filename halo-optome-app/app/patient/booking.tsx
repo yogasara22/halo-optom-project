@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, StyleSheet,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { toBoolean } from '../../utils/boolean';
 import { optometristService, Optometrist } from '../../services/optometristService';
 import { patientService } from '../../services/patientService';
@@ -12,6 +12,7 @@ import InitialAvatar from '../../components/common/InitialAvatar';
 
 export default function BookingScreen() {
     const router = useRouter();
+    const { optometristId } = useLocalSearchParams();
     const [optometrists, setOptometrists] = useState<Optometrist[]>([]);
     const [selectedOpt, setSelectedOpt] = useState<string | null>(null);
     const [type, setType] = useState<'homecare' | 'online'>('online');
@@ -29,22 +30,24 @@ export default function BookingScreen() {
     const [servicePrice, setServicePrice] = useState<number | null>(null);
     const [suggestedDates, setSuggestedDates] = useState<{ value: string; label: string }[]>([]);
     const [selectedScheduleKey, setSelectedScheduleKey] = useState<string | null>(null);
+    const [upcomingDates, setUpcomingDates] = useState<{ date: string; day: string; time: string; schedule_id: string }[]>([]);
 
     useEffect(() => {
         (async () => {
             try {
                 const list = await optometristService.getOptometrists();
-                console.log('📋 Fetched optometrists:', list.map(opt => ({
-                    name: opt.name,
-                    photo: opt.photo,
-                    avatar_url: opt.avatar_url,
-                })));
                 setOptometrists(list);
             } catch (e) {
                 setOptometrists([]);
             }
         })();
     }, []);
+
+    useEffect(() => {
+        if (optometristId) {
+            setSelectedOpt(optometristId as string);
+        }
+    }, [optometristId]);
 
     useEffect(() => {
         (async () => {
@@ -66,15 +69,40 @@ export default function BookingScreen() {
     }, [type, method]);
 
     useEffect(() => {
-        const target = optometrists.find(o => o.id === selectedOpt);
-        if (!target || !target.schedule || target.schedule.length === 0) { setDate(''); return; }
-        // Default ke jadwal terdekat dari item pertama
-        const iso = nextDateForDay(target.schedule[0].day);
-        setDate(iso);
-        const parts = iso.split('-');
+        (async () => {
+            if (!selectedOpt) {
+                setUpcomingDates([]);
+                return;
+            }
+            const dates = await optometristService.getUpcomingDates(selectedOpt);
+            setUpcomingDates(dates);
+
+            if (dates.length > 0) {
+                // Auto select first slot
+                const first = dates[0];
+                handleSelectDate(first);
+            } else {
+                setDate('');
+                setSelectedScheduleKey(null);
+            }
+        })();
+    }, [selectedOpt]);
+
+    const handleSelectDate = (s: { date: string; day: string; time: string }) => {
+        setDate(s.date);
+        const parts = s.date.split('-');
         setDateObj(new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
-        setSelectedScheduleKey(null);
-    }, [selectedOpt, optometrists]);
+
+        // Time format from backend might be "09:00:00 - 12:00:00"
+        const start = (s.time || '').split(' - ')[0].substring(0, 5); // Take "09:00"
+        if (start) {
+            setTime(start);
+            setTimeObj(new Date(`${s.date}T${start}:00`));
+        }
+
+        // Create unique key for selection
+        setSelectedScheduleKey(`${s.date}|${s.time}`);
+    };
 
     const fmtDate = (d: Date) => {
         const y = d.getFullYear();
@@ -89,14 +117,11 @@ export default function BookingScreen() {
         return `${h}:${mi}`;
     };
 
-    const nextDateForDay = (day: string) => {
-        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const targetIdx = days.indexOf((day || '').toLowerCase());
-        const now = new Date();
-        const currentIdx = now.getDay();
-        const diff = (targetIdx - currentIdx + 7) % 7;
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const formatDateDisplay = (dateStr: string) => {
+        const d = new Date(dateStr);
+        const day = d.getDate();
+        const month = d.toLocaleString('id-ID', { month: 'short' });
+        return `${day} ${month}`;
     };
 
     const toIndoDay = (d: string) => {
@@ -194,11 +219,6 @@ export default function BookingScreen() {
                                 <View style={[styles.avatarRing, active && styles.avatarRingActive]}>
                                     {(() => {
                                         const avatarUrl = opt.avatar_url || opt.photo;
-                                        console.log(`👤 Optometrist ${opt.name}:`, {
-                                            avatar_url: opt.avatar_url,
-                                            photo: opt.photo,
-                                            using: avatarUrl,
-                                        });
                                         return (
                                             <InitialAvatar
                                                 name={opt.name}
@@ -216,34 +236,40 @@ export default function BookingScreen() {
                     })}
                 </ScrollView>
 
-                {!!selectedOpt && (
+                {!!selectedOpt && upcomingDates.length > 0 && (
                     <View style={{ marginBottom: 16 }}>
-                        <Text style={{ marginBottom: 8, color: '#475569' }}>Jadwal Optometris</Text>
-                        <Text style={{ marginTop: -4, marginBottom: 8, fontSize: 12, color: '#64748b' }}>Silahkan pilih janji pemeriksaan</Text>
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                            {(optometrists.find(o => o.id === selectedOpt)?.schedule || []).map((s, idx) => (
-                                <TouchableOpacity
-                                    key={idx}
-                                    style={[styles.chip, selectedScheduleKey === `${s.day}|${s.time}` && styles.chipActive]}
-                                    activeOpacity={0.85}
-                                    onPress={() => {
-                                        const iso = nextDateForDay(s.day);
-                                        setDate(iso);
-                                        const parts = iso.split('-');
-                                        setDateObj(new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
-                                        const start = (s.time || '').split(' - ')[0];
-                                        if (start) {
-                                            setTime(start);
-                                            setTimeObj(new Date(`${iso}T${start}:00`));
-                                        }
-                                        setSelectedScheduleKey(`${s.day}|${s.time}`);
-                                    }}
-                                >
-                                    <Ionicons name="calendar" size={14} color="#2563EB" />
-                                    <Text style={[styles.chipText, selectedScheduleKey === `${s.day}|${s.time}` && styles.chipTextActive]}>{toIndoDay(s.day)} {s.time}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
+                        <Text style={{ marginBottom: 8, color: '#475569' }}>Jadwal Tersedia</Text>
+                        <Text style={{ marginTop: -4, marginBottom: 8, fontSize: 12, color: '#64748b' }}>Pilih tanggal dan jam kunjungan</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                            {upcomingDates.map((s, idx) => {
+                                const isSelected = selectedScheduleKey === `${s.date}|${s.time}`;
+                                return (
+                                    <TouchableOpacity
+                                        key={idx}
+                                        style={[
+                                            styles.chip,
+                                            { flexDirection: 'column', alignItems: 'flex-start', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12 },
+                                            isSelected && styles.chipActive
+                                        ]}
+                                        activeOpacity={0.85}
+                                        onPress={() => handleSelectDate(s)}
+                                    >
+                                        <Text style={[styles.chipText, { fontSize: 11, marginBottom: 2 }, isSelected && styles.chipTextActive]}>
+                                            {toIndoDay(s.day)}, {formatDateDisplay(s.date)}
+                                        </Text>
+                                        <Text style={[{ fontWeight: 'bold', color: '#0f172a' }, isSelected && { color: '#2563EB' }]}>
+                                            {s.time.split(' - ')[0].substring(0, 5)}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {!!selectedOpt && upcomingDates.length === 0 && (
+                    <View style={{ marginBottom: 16, padding: 16, backgroundColor: '#f1f5f9', borderRadius: 8 }}>
+                        <Text style={{ color: '#64748b', textAlign: 'center' }}>Tidak ada jadwal tersedia dalam waktu dekat.</Text>
                     </View>
                 )}
 

@@ -213,7 +213,7 @@ export default function DashboardScreen() {
     ? historyItems
     : completedPatientHistories;
 
-  const upcoming = nextApt ? {
+  const upcoming = (nextApt && nextApt.status !== 'pending') ? {
     id: nextApt.id,
     name: nextApt.patient?.name || 'Pasien',
     photo: (() => {
@@ -226,7 +226,7 @@ export default function DashboardScreen() {
     appointmentTime: nextApt.start_time?.slice(0, 5) + (nextApt.end_time ? ` - ${nextApt.end_time.slice(0, 5)}` : ''),
     serviceType: nextApt.type === 'homecare' ? 'Homecare Pemeriksaan' : (nextApt.method === 'video' ? 'Konsultasi Video' : 'Konsultasi Chat'),
     status: convertStatus(nextApt.status),
-  } : (patientSchedules.length > 0 ? patientSchedules[0] : null);
+  } : null;
 
   return (
     <View style={styles.root}>

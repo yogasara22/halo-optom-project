@@ -56,7 +56,7 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     padding: 24,
     flex: 1,
     minHeight: 500,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   cardTitle: {
     fontSize: 20,

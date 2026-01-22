@@ -27,6 +27,7 @@ import analyticsRoutes from './routes/analytics.routes';
 import reportsRoutes from './routes/reports.routes';
 import walletRoutes from './routes/wallet.routes';
 import withdrawRoutes from './routes/withdraw.routes';
+import bankAccountRoutes from './routes/bank-account.routes';
 
 
 // Load environment variables
@@ -35,8 +36,9 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 app.use(morgan('dev'));
 
 // Serve static files (multiple fallbacks to ensure cross-env paths)
@@ -72,6 +74,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/withdraw-requests', withdrawRoutes);
+app.use('/api/bank-accounts', bankAccountRoutes);
 
 // Simple test route
 app.get('/', (_req, res) => {
