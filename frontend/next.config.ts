@@ -12,10 +12,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Menentukan root directory untuk mengatasi warning multiple lockfiles
-  turbopack: {
-    // Menentukan root directory secara eksplisit ke folder frontend
-    root: "D:\\3. Doc Yoga\\Layang\\Project\\39. Halo Optom App\\halo-optom-project\\frontend"
+
+  // Optimize package imports (tree shaking)
+  experimental: {
+    optimizePackageImports: [
+      '@heroicons/react',
+      '@radix-ui/react-toast',
+      '@radix-ui/react-tooltip',
+      'lucide-react',
+      'react-icons',
+    ],
   },
 };
 

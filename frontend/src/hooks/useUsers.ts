@@ -18,7 +18,10 @@ export function useUsers(params: GetUsersParams = {}) {
     queryKey: userKeys.list(params),
     queryFn: () => userService.getUsers(params),
     placeholderData: (previousData) => previousData,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes (optimized from 5 min)
+    gcTime: 20 * 60 * 1000, // 20 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Use cached data if available
   });
 }
 
@@ -46,7 +49,10 @@ export function useUserStats() {
         inactive: allUsers.filter(user => !user.isActive).length
       };
     },
-    staleTime: 1000 * 60 * 15, // 15 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 

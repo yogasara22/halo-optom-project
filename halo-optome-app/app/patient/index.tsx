@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,6 +12,7 @@ import SearchBar from '../../components/patients/SearchBar';
 import AppHeader from '../../components/patients/DashboardHeader';
 import UpcomingAppointmentCard from '../../components/patients/UpcomingAppointmentCard';
 import OptometrisCarousel from '../../components/patients/OptometrisCarousel';
+import { CacheManager, CACHE_KEYS } from '../../lib/cache';
 
 import ProductCarousel, { ProductItem } from '../../components/patients/ProductCarousel';
 import { formatRupiah } from '../../utils/format';
@@ -38,33 +39,58 @@ export default function DashboardScreen() {
         setIsLoading(true);
         setError(null);
 
-        const results = await Promise.allSettled([
-          optometristService.getFeaturedOptometrists(),
-          productService.getRecommendedProducts(),
-          patientService.getNextAppointment()
-        ]);
+        // Try cache first (stale-while-revalidate pattern)
+        const cachedData = await CacheManager.get<{
+          optometrists: Optometrist[];
+          products: Product[];
+          appointment: Appointment | null;
+        }>(CACHE_KEYS.PATIENT_DASHBOARD);
 
-        if (results[0].status === 'fulfilled') {
-          setFeaturedOptometrists(results[0].value);
-        } else {
-          setFeaturedOptometrists([]);
+        if (cachedData) {
+          // Show cached data immediately
+          setFeaturedOptometrists(cachedData.optometrists || []);
+          setRecommendedProducts(cachedData.products || []);
+          setNextAppointment(cachedData.appointment || null);
+          setIsLoading(false);
+
+          // Fetch fresh data in background
+          fetchFreshData();
+          return;
         }
 
-        if (results[1].status === 'fulfilled') {
-          setRecommendedProducts(results[1].value);
-        } else {
-          setRecommendedProducts([]);
-        }
+        // No cache, fetch fresh data
+        await fetchFreshData();
+      };
 
-        if (results[2].status === 'fulfilled') {
-          setNextAppointment(results[2].value);
-        } else {
-          setNextAppointment(null);
-        }
+      const fetchFreshData = async () => {
+        try {
+          const results = await Promise.allSettled([
+            optometristService.getFeaturedOptometrists(),
+            productService.getRecommendedProducts(),
+            patientService.getNextAppointment()
+          ]);
 
-        const allFailed = results.every(r => r.status === 'rejected');
-        setError(allFailed ? 'Gagal memuat data. Silakan coba lagi.' : null);
-        setIsLoading(false);
+          const data = {
+            optometrists: results[0].status === 'fulfilled' ? results[0].value : [],
+            products: results[1].status === 'fulfilled' ? results[1].value : [],
+            appointment: results[2].status === 'fulfilled' ? results[2].value : null
+          };
+
+          // Cache for 5 minutes
+          await CacheManager.set(CACHE_KEYS.PATIENT_DASHBOARD, data, 5);
+
+          setFeaturedOptometrists(data.optometrists);
+          setRecommendedProducts(data.products);
+          setNextAppointment(data.appointment);
+
+          const allFailed = results.every(r => r.status === 'rejected');
+          setError(allFailed ? 'Gagal memuat data. Silakan coba lagi.' : null);
+        } catch (err) {
+          console.error('Error fetching fresh data:', err);
+          setError('Gagal memuat data. Silakan coba lagi.');
+        } finally {
+          setIsLoading(false);
+        }
       };
 
       if (user.role === 'PATIENT' || user.role === 'pasien') { // Mendukung kedua format role
@@ -73,18 +99,7 @@ export default function DashboardScreen() {
     }
   }, [user]);
 
-  if (checking || !user) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={{ fontSize: 16, color: '#64748b', marginBottom: 8 }}>
-          Memuat dashboard...
-        </Text>
-        <ActivityIndicator size="large" color="#1876B8" />
-      </View>
-    );
-  }
-
-  // Konversi data Optometrist ke Optometris
+  // Konversi data Optometrist ke Optometris (defined before early return)
   const convertToOptometris = (optometrists: Optometrist[]) => {
     return optometrists.map(opt => {
       const base = API_BASE_URL.replace(/\/?api$/, '');
@@ -113,12 +128,7 @@ export default function DashboardScreen() {
     });
   };
 
-  // Gunakan data dari API jika tersedia, jika tidak gunakan array kosong
-  const optometrists = featuredOptometrists.length > 0
-    ? convertToOptometris(featuredOptometrists)
-    : [];
-
-  // Konversi data Product ke ProductItem
+  // Konversi data Product ke ProductItem (defined before early return)
   const convertToProductItem = (products: Product[]) => {
     return products.map(prod => {
       const base = API_BASE_URL.replace(/\/?api$/, '');
@@ -135,9 +145,31 @@ export default function DashboardScreen() {
     });
   };
 
-  const products = recommendedProducts.length > 0
-    ? convertToProductItem(recommendedProducts)
-    : [];
+  // Memoize expensive conversions (MUST be before early return!)
+  const optometrists = useMemo(() =>
+    featuredOptometrists.length > 0
+      ? convertToOptometris(featuredOptometrists)
+      : [],
+    [featuredOptometrists]
+  );
+
+  const products = useMemo(() =>
+    recommendedProducts.length > 0
+      ? convertToProductItem(recommendedProducts)
+      : [],
+    [recommendedProducts]
+  );
+
+  if (checking || !user) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ fontSize: 16, color: '#64748b', marginBottom: 8 }}>
+          Memuat dashboard...
+        </Text>
+        <ActivityIndicator size="large" color="#1876B8" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>

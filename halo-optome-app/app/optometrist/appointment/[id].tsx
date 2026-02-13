@@ -278,8 +278,16 @@ export default function AppointmentDetailScreen() {
                 {/* Action Buttons */}
                 <View style={styles.actions}>
                     {appointment.status === 'pending' && (
-                        <TouchableOpacity style={styles.btnPrimary} onPress={handleAccept}>
-                            <Text style={styles.btnPrimaryText}>Setujui Janji Temu</Text>
+                        <TouchableOpacity
+                            style={[styles.btnPrimary, loading && styles.btnDisabled]}
+                            onPress={handleAccept}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={styles.btnPrimaryText}>Setujui Janji Temu</Text>
+                            )}
                         </TouchableOpacity>
                     )}
 

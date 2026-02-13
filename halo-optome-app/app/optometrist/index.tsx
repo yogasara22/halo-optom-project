@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -11,6 +11,7 @@ import UpcomingAppointmentCard from '../../components/optometrist/UpcomingAppoin
 import PatientScheduleCarousel, { PatientSchedule } from '../../components/optometrist/PatientScheduleCarousel';
 import RecentHistoryCarousel, { PatientHistoryItem } from '../../components/optometrist/RecentHistoryCarousel';
 import { API_BASE_URL } from '../../constants/config';
+import { CacheManager, CACHE_KEYS } from '../../lib/cache';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -24,9 +25,12 @@ export default function DashboardScreen() {
   const [commission, setCommission] = useState<{ balance: number; formatted: string }>({ balance: 0, formatted: 'Rp 0' });
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Debouncing: Prevent re-fetch if last fetch was less than 30 seconds ago
+  const lastFetchTime = useRef<number>(0);
+  const FETCH_COOLDOWN = 30000; // 30 seconds
+
   useFocusEffect(
     useCallback(() => {
-      // ... existing checks ...
       if (!user) {
         router.replace('/auth/login');
         return;
@@ -34,105 +38,153 @@ export default function DashboardScreen() {
 
       setChecking(false);
 
+      // Debounce: Don't re-fetch if last fetch was < 30s ago
+      const now = Date.now();
+      if (now - lastFetchTime.current < FETCH_COOLDOWN) {
+        console.log('Using cached data (within cooldown period)');
+        return;
+      }
+      lastFetchTime.current = now;
+
       const fetchData = async () => {
         try {
-          // ... existing logic ...
           setIsLoading(true);
           setError(null);
 
-          let appointmentsData: ApiAppointment[] = [];
-          let next: ApiAppointment | null = null;
-          let commData = { balance: 0, formatted: 'Rp 0' };
-          let unread = 0;
+          // Try cache first (stale-while-revalidate)
+          const cachedData = await CacheManager.get<{
+            appointments: ApiAppointment[];
+            nextApt: ApiAppointment | null;
+            commission: { balance: number; formatted: string };
+            unreadCount: number;
+            historyItems: PatientHistoryItem[];
+          }>(CACHE_KEYS.OPTOMETRIST_DASHBOARD);
 
-          try {
-            commData = await optometristAppService.getCommissionBalance();
-            setCommission(commData);
-          } catch (e) {
-            console.log('Failed to fetch commission:', e);
+          if (cachedData) {
+            // Show cached data immediately
+            setAppointments(cachedData.appointments || []);
+            setNextApt(cachedData.nextApt || null);
+            setCommission(cachedData.commission || { balance: 0, formatted: 'Rp 0' });
+            setUnreadCount(cachedData.unreadCount || 0);
+            setHistoryItems(cachedData.historyItems || []);
+            setIsLoading(false);
+
+            // Fetch fresh data in background
+            fetchFreshData();
+            return;
           }
 
-          try {
-            unread = await optometristAppService.getUnreadChatCount();
-            setUnreadCount(unread);
-          } catch (e) {
-            console.log('Failed to fetch unread count:', e);
-          }
-
-          try {
-            appointmentsData = await optometristAppService.getMyAppointments();
-            setAppointments(appointmentsData || []);
-          } catch (e) {
-            console.log('Failed to fetch appointments:', e);
-          }
-
-          try {
-            next = await optometristAppService.getMyNextAppointment();
-            setNextApt(next);
-          } catch (e) {
-            console.log('Failed to fetch next appointment:', e);
-          }
-
-          // ... rest of processing ...
-
-          const patientIds = Array.from(new Set(appointmentsData.map(a => a.patient?.id).filter(Boolean))) as string[];
-          const limitedPatientIds = patientIds.slice(0, 5);
-
-          const historiesByPatient = await Promise.all(
-            limitedPatientIds.map(async pid => {
-              try {
-                return await medicalService.getPatientMedicalRecords(pid);
-              } catch (e) {
-                return [];
-              }
-            })
-          );
-
-          const allHistories: MedicalHistory[] = ([] as MedicalHistory[]).concat(...historiesByPatient);
-          const patientMap = new Map<string, { name: string; avatar?: string; appts: ApiAppointment[] }>();
-
-          appointmentsData.forEach(a => {
-            const id = a.patient?.id;
-            if (!id) return;
-            const existing = patientMap.get(id);
-            const appts = existing ? existing.appts.concat([a]) : [a];
-            patientMap.set(id, { name: a.patient!.name, avatar: a.patient!.avatar_url, appts });
-          });
-
-          const sortedHistories = allHistories.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          const base = API_BASE_URL.replace(/\/?api$/, '');
-
-          const items: PatientHistoryItem[] = sortedHistories.map(h => {
-            // ... existing mapping ...
-            if (!h) return null;
-            const pid = h.patientId;
-            const info = patientMap.get(pid);
-            const apptSameDay = info?.appts.find(ap => ap.date === h.date);
-            const time = apptSameDay ? (apptSameDay.start_time?.slice(0, 5) + (apptSameDay.end_time ? ` - ${apptSameDay.end_time.slice(0, 5)}` : '')) : '00:00';
-            const svc = apptSameDay ? (apptSameDay.type === 'homecare' ? 'Homecare Pemeriksaan' : (apptSameDay.method === 'video' ? 'Konsultasi Video' : 'Konsultasi Chat')) : 'Pemeriksaan Mata';
-
-            let pPhoto = info?.avatar;
-            if (pPhoto && !/^https?:\/\//i.test(pPhoto)) pPhoto = base + pPhoto;
-            if (pPhoto && /localhost|127\.0\.0\.1/.test(pPhoto)) pPhoto = pPhoto.replace(/^https?:\/\/[^/]+/, base);
-
-            return {
-              id: h.id,
-              name: info?.name || 'Pasien',
-              photo: pPhoto || undefined, // Pass string URL or undefined for InitialAvatar
-              appointmentDate: new Date(h.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-              appointmentTime: time,
-              serviceType: svc,
-              diagnosis: h.condition,
-            };
-          }).filter(Boolean) as PatientHistoryItem[];
-
-          setHistoryItems(items);
+          // No cache, fetch fresh data
+          await fetchFreshData();
         } catch (err) {
           console.error('Error fetching data:', err);
           setError('Gagal memuat data. Silakan coba lagi.');
         } finally {
           setIsLoading(false);
         }
+      };
+
+      const fetchFreshData = async () => {
+        let appointmentsData: ApiAppointment[] = [];
+        let next: ApiAppointment | null = null;
+        let commData = { balance: 0, formatted: 'Rp 0' };
+        let unread = 0;
+
+        try {
+          commData = await optometristAppService.getCommissionBalance();
+          setCommission(commData);
+        } catch (e) {
+          console.log('Failed to fetch commission:', e);
+        }
+
+        try {
+          unread = await optometristAppService.getUnreadChatCount();
+          setUnreadCount(unread);
+        } catch (e) {
+          console.log('Failed to fetch unread count:', e);
+        }
+
+        try {
+          appointmentsData = await optometristAppService.getMyAppointments();
+          setAppointments(appointmentsData || []);
+        } catch (e) {
+          console.log('Failed to fetch appointments:', e);
+        }
+
+        try {
+          next = await optometristAppService.getMyNextAppointment();
+          setNextApt(next);
+        } catch (e) {
+          console.log('Failed to fetch next appointment:', e);
+        }
+
+        // Fetch medical records (limit to 3 patients for performance)
+        const patientIds = Array.from(new Set(appointmentsData.map(a => a.patient?.id).filter(Boolean))) as string[];
+        const limitedPatientIds = patientIds.slice(0, 3);
+
+        const historiesByPatient = await Promise.all(
+          limitedPatientIds.map(async pid => {
+            try {
+              // Check cache for medical records
+              const cached = await CacheManager.get<MedicalHistory[]>(CACHE_KEYS.MEDICAL_RECORD(pid));
+              if (cached) return cached;
+
+              const records = await medicalService.getPatientMedicalRecords(pid);
+              await CacheManager.set(CACHE_KEYS.MEDICAL_RECORD(pid), records, 10);
+              return records;
+            } catch (e) {
+              return [];
+            }
+          })
+        );
+
+        const allHistories: MedicalHistory[] = ([] as MedicalHistory[]).concat(...historiesByPatient);
+        const patientMap = new Map<string, { name: string; avatar?: string; appts: ApiAppointment[] }>();
+
+        appointmentsData.forEach(a => {
+          const id = a.patient?.id;
+          if (!id) return;
+          const existing = patientMap.get(id);
+          const appts = existing ? existing.appts.concat([a]) : [a];
+          patientMap.set(id, { name: a.patient!.name, avatar: a.patient!.avatar_url, appts });
+        });
+
+        const sortedHistories = allHistories.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const base = API_BASE_URL.replace(/\/?api$/, '');
+
+        const items: PatientHistoryItem[] = sortedHistories.map(h => {
+          if (!h) return null;
+          const pid = h.patientId;
+          const info = patientMap.get(pid);
+          const apptSameDay = info?.appts.find(ap => ap.date === h.date);
+          const time = apptSameDay ? (apptSameDay.start_time?.slice(0, 5) + (apptSameDay.end_time ? ` - ${apptSameDay.end_time.slice(0, 5)}` : '')) : '00:00';
+          const svc = apptSameDay ? (apptSameDay.type === 'homecare' ? 'Homecare Pemeriksaan' : (apptSameDay.method === 'video' ? 'Konsultasi Video' : 'Konsultasi Chat')) : 'Pemeriksaan Mata';
+
+          let pPhoto = info?.avatar;
+          if (pPhoto && !/^https?:\/\//i.test(pPhoto)) pPhoto = base + pPhoto;
+          if (pPhoto && /localhost|127\.0\.0\.1/.test(pPhoto)) pPhoto = pPhoto.replace(/^https?:\/\/[^/]+/, base);
+
+          return {
+            id: h.id,
+            name: info?.name || 'Pasien',
+            photo: pPhoto || undefined,
+            appointmentDate: new Date(h.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+            appointmentTime: time,
+            serviceType: svc,
+            diagnosis: h.condition,
+          };
+        }).filter(Boolean) as PatientHistoryItem[];
+
+        setHistoryItems(items);
+
+        // Cache all data for 3 minutes
+        await CacheManager.set(CACHE_KEYS.OPTOMETRIST_DASHBOARD, {
+          appointments: appointmentsData,
+          nextApt: next,
+          commission: commData,
+          unreadCount: unread,
+          historyItems: items
+        }, 3);
       };
 
       fetchData();

@@ -414,6 +414,8 @@ export const updateAppointmentStatus = async (req: Request, res: Response) => {
         console.error('Failed to send status update notification:', notifyErr);
       }
     }
+
+    return res.json({ message: 'Status appointment berhasil diperbarui', appointment });
   } catch (err) {
     console.error('Error updateAppointmentStatus:', err);
     return res.status(500).json({ message: 'Internal server error' });

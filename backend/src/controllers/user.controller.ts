@@ -254,6 +254,83 @@ export const deleteUser = async (req: Request, res: Response) => {
     const user = await userRepo.findOne({ where: { id } });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Check for related records before attempting deletion
+    const relatedRecordIssues: string[] = [];
+
+    // Import repositories dynamically to avoid circular dependencies
+    const { Appointment } = await import('../entities/Appointment');
+    const { Order } = await import('../entities/Order');
+    const { MedicalRecord } = await import('../entities/MedicalRecord');
+    const { Schedule } = await import('../entities/Schedule');
+    const { Review } = await import('../entities/Review');
+    const { ChatMessage } = await import('../entities/ChatMessage');
+
+    // Check appointments (as patient or optometrist)
+    const appointmentRepo = AppDataSource.getRepository(Appointment);
+    const appointmentsAsPatient = await appointmentRepo.count({
+      where: { patient: { id } }
+    });
+    const appointmentsAsOptometrist = await appointmentRepo.count({
+      where: { optometrist: { id } }
+    });
+    const totalAppointments = appointmentsAsPatient + appointmentsAsOptometrist;
+    if (totalAppointments > 0) {
+      relatedRecordIssues.push(`${totalAppointments} appointment(s)`);
+    }
+
+    // Check orders
+    const orderRepo = AppDataSource.getRepository(Order);
+    const orderCount = await orderRepo.count({
+      where: { patient: { id } }
+    });
+    if (orderCount > 0) {
+      relatedRecordIssues.push(`${orderCount} order(s)`);
+    }
+
+    // Check medical records
+    const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
+    const medicalRecordCount = await medicalRecordRepo.count({
+      where: { patient: { id } }
+    });
+    if (medicalRecordCount > 0) {
+      relatedRecordIssues.push(`${medicalRecordCount} medical record(s)`);
+    }
+
+    // Check schedules (for optometrists)
+    const scheduleRepo = AppDataSource.getRepository(Schedule);
+    const scheduleCount = await scheduleRepo.count({
+      where: { optometrist: { id } }
+    });
+    if (scheduleCount > 0) {
+      relatedRecordIssues.push(`${scheduleCount} schedule(s)`);
+    }
+
+    // Check reviews (for optometrists)
+    const reviewRepo = AppDataSource.getRepository(Review);
+    const reviewCount = await reviewRepo.count({
+      where: { optometrist: { id } }
+    });
+    if (reviewCount > 0) {
+      relatedRecordIssues.push(`${reviewCount} review(s)`);
+    }
+
+    // Check chat messages
+    const chatMessageRepo = AppDataSource.getRepository(ChatMessage);
+    const chatMessageCount = await chatMessageRepo.count({
+      where: { from: { id } }
+    });
+    if (chatMessageCount > 0) {
+      relatedRecordIssues.push(`${chatMessageCount} chat message(s)`);
+    }
+
+    // If there are related records, prevent deletion
+    if (relatedRecordIssues.length > 0) {
+      return res.status(400).json({
+        message: `Cannot delete user: has ${relatedRecordIssues.join(', ')}. Consider deactivating the user instead by toggling their active status.`
+      });
+    }
+
+    // No related records, safe to delete
     await userRepo.remove(user);
     return res.json({ message: 'User berhasil dihapus', deleted_id: id });
   } catch (err) {

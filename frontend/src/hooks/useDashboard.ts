@@ -15,7 +15,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
   try {
     const response = await api.get('/admin/stats');
     const reviewStats = await getReviewStats();
-    
+
     // Menggabungkan data dari API admin/stats dengan data review
     return {
       ...response.data,
@@ -39,12 +39,14 @@ export const useDashboardStats = () => {
       try {
         return await fetchDashboardStats();
       } catch (error) {
-        toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`); 
+        toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
         throw error;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes (optimized from 5 min)
+    gcTime: 30 * 60 * 1000, // 30 minutes (optimized from 10 min)
     retry: 1,
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Use cached data if available
   });
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { clsx } from 'clsx';
 
@@ -13,7 +13,7 @@ interface StatCardProps {
   color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple';
 }
 
-const StatCard: React.FC<StatCardProps> = ({
+const StatCard: React.FC<StatCardProps> = memo(({
   title,
   value,
   icon: Icon,
@@ -89,6 +89,8 @@ const StatCard: React.FC<StatCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+StatCard.displayName = 'StatCard';
 
 export default StatCard;
